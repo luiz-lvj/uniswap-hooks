@@ -6,7 +6,7 @@ pragma solidity ^0.8.24;
 import {BaseHook} from "../base/BaseHook.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
 import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Position} from "v4-core/src/libraries/Position.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
@@ -22,6 +22,7 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 abstract contract ReHypothecationHook is BaseHook {
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
+    using SafeCast for uint256;
 
     struct ReHypothecatedPosition {
         uint256 liquidityTotal;
@@ -51,10 +52,11 @@ abstract contract ReHypothecationHook is BaseHook {
         uint256 liquidity = reHypothecatedPositions[key.toId()].liquidity[owner];
         if (liquidity == 0) revert ZeroLiquidity();
 
-        reHypothecatedPositions[key.toId()].liquidityTotal -= liquidity;
-        reHypothecatedPositions[key.toId()].liquidity[owner] = 0;
 
         (uint256 amount0, uint256 amount1) = _retrieveReHypothecatedLiquidity(key, owner, liquidity);
+
+        reHypothecatedPositions[key.toId()].liquidityTotal -= liquidity;
+        reHypothecatedPositions[key.toId()].liquidity[owner] = 0;
 
         key.currency0.transfer(owner, amount0);
         key.currency1.transfer(owner, amount1);
@@ -65,13 +67,29 @@ abstract contract ReHypothecationHook is BaseHook {
     function _retrieveReHypothecatedLiquidity(PoolKey calldata key, address owner, uint256 liquidity) internal virtual returns (uint256 amount0, uint256 amount1);
 
     function _beforeSwap(
-        address sender,
+        address,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
-        bytes calldata hookData
+        bytes calldata
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24){
+        if (reHypothecatedPositions[key.toId()].liquidityTotal > 0) {
+            (uint256 liquidityToUse, int24 tickLower, int24 tickUpper) = _getLiquidityToUse(key, params);
 
+            if(liquidityToUse > 0) {
+                poolManager.modifyLiquidity(key, IPoolManager.ModifyLiquidityParams({
+                    tickLower: tickLower,
+                    tickUpper: tickUpper,
+                    liquidityDelta: liquidityToUse.toInt256(),
+                    salt: bytes32(0)
+                }), "");
+            }
+        }
+
+        return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
+
+
+    function _getLiquidityToUse(PoolKey calldata key, IPoolManager.SwapParams calldata params) internal virtual returns (uint256 liquidity, int24 tickLower, int24 tickUpper);
     
     /**
      * Set the hooks permissions, specifically `afterAddLiquidity`, `afterRemoveLiquidity` and `afterRemoveLiquidityReturnDelta`.

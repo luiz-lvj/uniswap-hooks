@@ -89,6 +89,17 @@ abstract contract ReHypothecationHook is BaseHook {
     }
 
 
+    function _afterSwap(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) internal virtual override returns (bytes4, int128) {
+        
+    }
+
+
     function _getLiquidityToUse(PoolKey calldata key, IPoolManager.SwapParams calldata params) internal virtual returns (uint256 liquidity, int24 tickLower, int24 tickUpper);
     
     /**

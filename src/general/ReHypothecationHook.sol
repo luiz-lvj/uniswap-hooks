@@ -24,47 +24,52 @@ abstract contract ReHypothecationHook is BaseHook {
     using CurrencySettler for Currency;
     using SafeCast for uint256;
 
-    struct ReHypothecatedPosition {
-        uint256 liquidityTotal;
-        mapping(address => uint256) liquidity;
-    }
 
-    mapping(PoolId => ReHypothecatedPosition) public reHypothecatedPositions;
+
+    uint256 public totalShares;
+    mapping(address => uint256) public shares;
+
+    uint128 private JITLiquidity;
+
+    int24 private JITTickLower;
+    int24 private JITTickUpper;
 
 
     error ZeroLiquidity();
+
+    error AlreadyInitialized();
+
+
+    PoolKey public poolKey;
 
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     function addReHypothecatedLiquidity(PoolKey calldata key, int256 amount0, int256 amount1)
         external
     {
-        uint256 liquidity = _rehypothecateLiquidity(key, amount0, amount1);
-        if (liquidity == 0) revert ZeroLiquidity();
+        uint256 sharesAmount = _rehypothecateLiquidity(key, amount0, amount1);
+        if (sharesAmount == 0) revert ZeroLiquidity();
 
-        reHypothecatedPositions[key.toId()].liquidityTotal += liquidity;
-        reHypothecatedPositions[key.toId()].liquidity[msg.sender] += liquidity;
-
+        _increaseShares(msg.sender, sharesAmount);
 
     }
 
     function removeReHypothecatedLiquidity(PoolKey calldata key, address owner) external {
-        uint256 liquidity = reHypothecatedPositions[key.toId()].liquidity[owner];
-        if (liquidity == 0) revert ZeroLiquidity();
+        uint256 sharesAmount = shares[owner];
+        if (sharesAmount == 0) revert ZeroLiquidity();
 
 
-        (uint256 amount0, uint256 amount1) = _retrieveReHypothecatedLiquidity(key, owner, liquidity);
+        (uint256 amount0, uint256 amount1) = _retrieveReHypothecatedLiquidity(key, owner);
 
-        reHypothecatedPositions[key.toId()].liquidityTotal -= liquidity;
-        reHypothecatedPositions[key.toId()].liquidity[owner] = 0;
+        _decreaseShares(owner, sharesAmount);
 
         key.currency0.transfer(owner, amount0);
         key.currency1.transfer(owner, amount1);
     }
 
-    function _rehypothecateLiquidity(PoolKey calldata key, int256 amount0, int256 amount1) internal virtual returns (uint256 liquidity);
+    function _rehypothecateLiquidity(PoolKey calldata key, int256 amount0, int256 amount1) internal virtual returns (uint256 sharesAmount);
 
-    function _retrieveReHypothecatedLiquidity(PoolKey calldata key, address owner, uint256 liquidity) internal virtual returns (uint256 amount0, uint256 amount1);
+    function _retrieveReHypothecatedLiquidity(PoolKey calldata key, address owner) internal virtual returns (uint256 amount0, uint256 amount1);
 
     function _beforeSwap(
         address,
@@ -72,8 +77,12 @@ abstract contract ReHypothecationHook is BaseHook {
         IPoolManager.SwapParams calldata params,
         bytes calldata
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24){
-        if (reHypothecatedPositions[key.toId()].liquidityTotal > 0) {
-            (uint256 liquidityToUse, int24 tickLower, int24 tickUpper) = _getLiquidityToUse(key, params);
+        if (totalShares > 0) {
+            (uint256 liquidityToUse, int24 tickLower, int24 tickUpper) = _getLiquidityToUse(params);
+
+            JITLiquidity = liquidityToUse;
+            JITTickLower = tickLower;
+            JITTickUpper = tickUpper;
 
             if(liquidityToUse > 0) {
                 poolManager.modifyLiquidity(key, IPoolManager.ModifyLiquidityParams({
@@ -89,6 +98,31 @@ abstract contract ReHypothecationHook is BaseHook {
     }
 
 
+    function _increaseShares(address owner, uint256 amountShares) private {
+        totalShares += amountShares;
+        shares[owner] += amountShares;
+    }
+
+    function _decreaseShares(address owner, uint256 amountShares) private {
+
+        totalShares -= amountShares;
+        shares[owner] -= amountShares;
+    }
+
+    /**
+     * @dev Initialize the hook's pool key. The stored key should act immutably so that
+     * it can safely be used across the hook's functions.
+     */
+    function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
+        // Check if the pool key is already initialized
+        if (address(poolKey.hooks) != address(0)) revert AlreadyInitialized();
+
+        // Store the pool key to be used in other functions
+        poolKey = key;
+        return this.beforeInitialize.selector;
+    }
+
+
     function _afterSwap(
         address sender,
         PoolKey calldata key,
@@ -96,11 +130,38 @@ abstract contract ReHypothecationHook is BaseHook {
         BalanceDelta delta,
         bytes calldata hookData
     ) internal virtual override returns (bytes4, int128) {
+        if(JITLiquidity > 0) {
+            poolManager.modifyLiquidity(key, IPoolManager.ModifyLiquidityParams({
+                tickLower: JITTickLower,
+                tickUpper: JITTickUpper,
+                liquidityDelta: -int256(uint256(JITLiquidity)),
+                salt: bytes32(0)
+            }), "");
+        }
+
+        JITLiquidity = 0;
+        JITTickLower = 0;
+        JITTickUpper = 0;
+
+        int256 currencyDelta0 = poolManager.currencyDelta(address(this), key.currency0);
+        int256 currencyDelta1 = poolManager.currencyDelta(address(this), key.currency1);
+
+        if(currencyDelta0 > 0){
+            key.currency0.take();
+        }
         
+        
+
+
+        return (this.afterSwap.selector, 0);
+
     }
 
 
-    function _getLiquidityToUse(PoolKey calldata key, IPoolManager.SwapParams calldata params) internal virtual returns (uint256 liquidity, int24 tickLower, int24 tickUpper);
+
+
+
+    function _getLiquidityToUse(IPoolManager.SwapParams calldata params) internal virtual returns (uint256 liquidity, int24 tickLower, int24 tickUpper);
     
     /**
      * Set the hooks permissions, specifically `afterAddLiquidity`, `afterRemoveLiquidity` and `afterRemoveLiquidityReturnDelta`.
@@ -109,20 +170,20 @@ abstract contract ReHypothecationHook is BaseHook {
      */
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory permissions) {
         return Hooks.Permissions({
-            beforeInitialize: false,
+            beforeInitialize: true,
             afterInitialize: false,
             beforeAddLiquidity: false,
-            afterAddLiquidity: true,
+            afterAddLiquidity: false,
             beforeRemoveLiquidity: false,
-            afterRemoveLiquidity: true,
-            beforeSwap: false,
-            afterSwap: false,
+            afterRemoveLiquidity: false,
+            beforeSwap: true,
+            afterSwap: true,
             beforeDonate: false,
             afterDonate: false,
             beforeSwapReturnDelta: false,
             afterSwapReturnDelta: false,
             afterAddLiquidityReturnDelta: false,
-            afterRemoveLiquidityReturnDelta: true
+            afterRemoveLiquidityReturnDelta: false
         });
     }
 }

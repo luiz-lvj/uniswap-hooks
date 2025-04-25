@@ -3,23 +3,29 @@
 
 pragma solidity ^0.8.24;
 
+// Internal imports
 import {BaseHook} from "../base/BaseHook.sol";
+import {CurrencySettler} from "../utils/CurrencySettler.sol";
+
+// External imports
 import {Pool} from "v4-core/src/libraries/Pool.sol";
-import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Position} from "v4-core/src/libraries/Position.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+import {FullMath} from "v4-core/src/libraries/FullMath.sol";
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {TransientStateLibrary} from "v4-core/src/libraries/TransientStateLibrary.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {FullMath} from "v4-core/src/libraries/FullMath.sol";
-import {CurrencySettler} from "src/utils/CurrencySettler.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
+import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
+
 
 abstract contract ReHypothecationHook is BaseHook {
+    using TransientStateLibrary for IPoolManager;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
     using SafeCast for uint256;
@@ -29,7 +35,7 @@ abstract contract ReHypothecationHook is BaseHook {
     uint256 public totalShares;
     mapping(address => uint256) public shares;
 
-    uint128 private JITLiquidity;
+    uint256 private JITLiquidity;
 
     int24 private JITTickLower;
     int24 private JITTickUpper;
@@ -39,37 +45,39 @@ abstract contract ReHypothecationHook is BaseHook {
 
     error AlreadyInitialized();
 
+    error PoolKeyNotInitialized();
+
 
     PoolKey public poolKey;
 
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
-    function addReHypothecatedLiquidity(PoolKey calldata key, int256 amount0, int256 amount1)
+    function addReHypothecatedLiquidity(uint256 amount0, uint256 amount1)
         external
     {
-        uint256 sharesAmount = _rehypothecateLiquidity(key, amount0, amount1);
+        uint256 sharesAmount = _rehypothecateLiquidity(amount0, amount1);
         if (sharesAmount == 0) revert ZeroLiquidity();
 
         _increaseShares(msg.sender, sharesAmount);
 
     }
 
-    function removeReHypothecatedLiquidity(PoolKey calldata key, address owner) external {
+    function removeReHypothecatedLiquidity(address owner) external {
         uint256 sharesAmount = shares[owner];
         if (sharesAmount == 0) revert ZeroLiquidity();
 
 
-        (uint256 amount0, uint256 amount1) = _retrieveReHypothecatedLiquidity(key, owner);
+        (uint256 amount0, uint256 amount1) = _retrieveReHypothecatedLiquidity(owner);
 
         _decreaseShares(owner, sharesAmount);
 
-        key.currency0.transfer(owner, amount0);
-        key.currency1.transfer(owner, amount1);
+        poolKey.currency0.transfer(owner, amount0);
+        poolKey.currency1.transfer(owner, amount1);
     }
 
-    function _rehypothecateLiquidity(PoolKey calldata key, int256 amount0, int256 amount1) internal virtual returns (uint256 sharesAmount);
+    function _rehypothecateLiquidity(uint256 amount0, uint256 amount1) internal virtual returns (uint256 sharesAmount);
 
-    function _retrieveReHypothecatedLiquidity(PoolKey calldata key, address owner) internal virtual returns (uint256 amount0, uint256 amount1);
+    function _retrieveReHypothecatedLiquidity(address owner) internal virtual returns (uint256 amount0, uint256 amount1);
 
     function _beforeSwap(
         address,
@@ -77,6 +85,15 @@ abstract contract ReHypothecationHook is BaseHook {
         IPoolManager.SwapParams calldata params,
         bytes calldata
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24){
+
+        uint256 selfBalance0 = key.currency0.balanceOfSelf();
+        uint256 selfBalance1 = key.currency1.balanceOfSelf();
+
+        if(selfBalance0 >0 || selfBalance1 >0){
+            _rehypothecateLiquidity(selfBalance0, selfBalance1);
+        }
+
+
         if (totalShares > 0) {
             (uint256 liquidityToUse, int24 tickLower, int24 tickUpper) = _getLiquidityToUse(params);
 
@@ -147,7 +164,9 @@ abstract contract ReHypothecationHook is BaseHook {
         int256 currencyDelta1 = poolManager.currencyDelta(address(this), key.currency1);
 
         if(currencyDelta0 > 0){
-            key.currency0.take();
+            poolManager.mint(address(this), key.currency0.toId(), uint256(currencyDelta0));
+        } else if(currencyDelta0 < 0){
+
         }
         
         

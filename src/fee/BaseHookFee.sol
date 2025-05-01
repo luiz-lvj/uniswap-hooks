@@ -22,7 +22,8 @@ import {FullMath} from "v4-core/src/libraries/FullMath.sol";
  * @dev Base implementation to apply fees to a hook. These fees are applied to swap amounts in the unspecified currency.
  * These fees are independent of the pool's LP fee, charged after the swap and the amount taken as fee are deposited into the hook.
  *
- * NOTE: Hook developers must implement ways to handle the fees collected by the hook, such as withdrawing them, otherwise the fees will be locked in the hook.
+ * NOTE that this hook can be used by multiple pools and currencies can overlap between them.
+ * That's why the `withdrawFees` function takes a `Currency[]` as argument instead of a `PoolKey` for example.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -40,7 +41,8 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
     /// @dev Fee is higher than the maximum allowed fee.
     error FeeTooHigh();
 
-    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
+    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {
+    }
 
     /**
      * @dev Get the fee to be applied after the swap. Takes the `address` `sender`, a `PoolKey` `key`,
@@ -52,6 +54,11 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
         IPoolManager.SwapParams calldata params,
         bytes calldata hookData
     ) internal view virtual returns (uint256);
+
+    /**
+     * @dev Withdraws the fees from the hook. Takes the `Currency[]` `currencies` as arguments.
+     */
+    function withdrawFees(Currency[] calldata currencies) external virtual;
 
     /**
      * @dev Hooks into the `afterSwap` hook to apply the hook fee to the unspecified currency.

@@ -24,7 +24,9 @@ contract BaseHookFeeTest is Test, Deployers {
         deployMintAndApprove2Currencies();
 
         hook = BaseHookFeeMock(address(uint160(Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG)));
-        deployCodeTo("test/mocks/BaseHookFeeMock.sol:BaseHookFeeMock", abi.encode(manager, hookFee), address(hook));
+        deployCodeTo(
+            "test/mocks/BaseHookFeeMock.sol:BaseHookFeeMock", abi.encode(manager, address(this), hookFee), address(hook)
+        );
 
         (key,) = initPoolAndAddLiquidity(currency0, currency1, IHooks(address(hook)), 3000, SQRT_PRICE_1_1);
         (noHookKey,) = initPoolAndAddLiquidity(currency0, currency1, IHooks(address(0)), 3000, SQRT_PRICE_1_1);

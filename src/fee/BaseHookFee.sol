@@ -18,16 +18,34 @@ import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 
+/**
+ * @dev Base implementation to apply fees to a hook. These fees are applied to swap amounts in the unspecified currency.
+ * These fees are independent of the pool's LP fee, charged after the swap and the amount taken as fee are deposited into the hook.
+ *
+ * NOTE: Hook developers must implement ways to handle the fees collected by the hook, such as withdrawing them, otherwise the fees will be locked in the hook.
+ *
+ * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
+ * not give any warranties and will not be liable for any losses incurred through any use of this code
+ * base.
+ *
+ * _Available since v1.2.0_
+ */
 abstract contract BaseHookFee is BaseHook, IHookEvents {
     using SafeCast for uint256;
     using CurrencySettler for Currency;
 
+    /// @dev The maximum fee that can be applied to a hook. (100%)
     uint256 internal constant MAX_FEE = 1e6;
 
+    /// @dev Fee is higher than the maximum allowed fee.
     error FeeTooHigh();
 
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
+    /**
+     * @dev Get the fee to be applied after the swap. Takes the `address` `sender`, a `PoolKey` `key`,
+     * the `SwapParams` `params` and `hookData` as arguments and returns the `fee` to be applied.
+     */
     function _getHookFee(
         address sender,
         PoolKey calldata key,
@@ -35,6 +53,9 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
         bytes calldata hookData
     ) internal view virtual returns (uint256);
 
+    /**
+     * @dev Hooks into the `afterSwap` hook to apply the hook fee to the unspecified currency.
+     */
     function _afterSwap(
         address sender,
         PoolKey calldata key,
@@ -62,9 +83,9 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
 
         uint256 feeAmount = FullMath.mulDiv(uint256(uint128(unspecifiedAmount)), fee, MAX_FEE);
 
-        if (feeAmount > 0) {
-            unspecified.take(poolManager, address(this), feeAmount, false);
-        }
+        // Take the fee amount to the hook. Note that having `claims` as false means that the currency will be transferred to the hook
+        // as ERC20 or native tokens, not as a claim.
+        unspecified.take(poolManager, address(this), feeAmount, false);
 
         // Emit the swap event with the amounts ordered correctly
         if (unspecified == key.currency0) {

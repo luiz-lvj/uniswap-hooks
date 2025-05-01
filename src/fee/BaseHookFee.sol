@@ -24,37 +24,24 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
 
     uint256 internal constant MAX_FEE = 1e6;
 
-    address public feeRecipient;
-
-    event HookFeeWithdrawn(Currency indexed currency, address recipient, uint256 amount);
-
     error FeeTooHigh();
 
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
-    function _getHookFee(PoolKey calldata key) internal view virtual returns (uint256);
-
-    function _applyHookFee(PoolKey calldata key) internal virtual returns (bool);
-
-    function withdrawFees(Currency[] calldata currencies) public virtual {
-        for (uint256 i = 0; i < currencies.length; i++) {
-            uint256 selfBalance = currencies[i].balanceOfSelf();
-            if (selfBalance > 0) {
-                currencies[i].transfer(feeRecipient, selfBalance);
-                emit HookFeeWithdrawn(currencies[i], feeRecipient, selfBalance);
-            }
-        }
-    }
+    function _getHookFee(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        bytes calldata hookData
+    ) internal view virtual returns (uint256);
 
     function _afterSwap(
         address sender,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
         BalanceDelta delta,
-        bytes calldata
+        bytes calldata hookData
     ) internal virtual override returns (bytes4, int128) {
-        if (!_applyHookFee(key)) return (this.afterSwap.selector, 0);
-
         (Currency unspecified, int128 unspecifiedAmount) = (params.amountSpecified < 0 == params.zeroForOne)
             ? (key.currency1, delta.amount1())
             : (key.currency0, delta.amount0());
@@ -67,7 +54,9 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
             unspecifiedAmount = -unspecifiedAmount;
         }
 
-        uint256 fee = _getHookFee(key);
+        uint256 fee = _getHookFee(sender, key, params, hookData);
+
+        if (fee == 0) return (this.afterSwap.selector, 0);
 
         if (fee > MAX_FEE) revert FeeTooHigh();
 
@@ -88,7 +77,7 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
     }
 
     /**
-     * @dev Set the hook permissions, specifically {beforeSwap}, {afterSwap} and {afterSwapReturnDelta}.
+     * @dev Set the hook permissions, specifically {afterSwap} and {afterSwapReturnDelta}.
      *
      * @return permissions The hook permissions.
      */

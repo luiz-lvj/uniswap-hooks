@@ -24,9 +24,7 @@ contract BaseHookFeeTest is Test, Deployers {
         deployMintAndApprove2Currencies();
 
         hook = BaseHookFeeMock(address(uint160(Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG)));
-        deployCodeTo(
-            "test/mocks/BaseHookFeeMock.sol:BaseHookFeeMock", abi.encode(manager, address(this), hookFee), address(hook)
-        );
+        deployCodeTo("test/mocks/BaseHookFeeMock.sol:BaseHookFeeMock", abi.encode(manager, hookFee), address(hook));
 
         (key,) = initPoolAndAddLiquidity(currency0, currency1, IHooks(address(hook)), 3000, SQRT_PRICE_1_1);
         (noHookKey,) = initPoolAndAddLiquidity(currency0, currency1, IHooks(address(0)), 3000, SQRT_PRICE_1_1);
@@ -114,7 +112,7 @@ contract BaseHookFeeTest is Test, Deployers {
             sqrtPriceLimitX96: MAX_PRICE_LIMIT
         });
 
-        BalanceDelta deltaHook = swapRouter.swap(key, swapParams, testSettings, "");
+        swapRouter.swap(key, swapParams, testSettings, "");
         BalanceDelta deltaNoHook = swapRouter.swap(noHookKey, swapParams, testSettings, "");
 
         // exact output && zeroForOne == false => currency1 is the specified currency
@@ -125,5 +123,46 @@ contract BaseHookFeeTest is Test, Deployers {
         uint256 deltaSpecifiedNoHook = uint256(uint128(-deltaNoHook.amount1()));
         uint256 expectedFee = FullMath.mulDiv(deltaSpecifiedNoHook, hookFee, 1e6);
         assertEq(hookCurrency1Balance, expectedFee);
+    }
+
+    function test_withdrawFees() public {
+        PoolSwapTest.TestSettings memory testSettings =
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+
+        IPoolManager.SwapParams memory swapParams1 = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -1e18, // exact input
+            sqrtPriceLimitX96: MIN_PRICE_LIMIT
+        });
+
+        IPoolManager.SwapParams memory swapParams2 = IPoolManager.SwapParams({
+            zeroForOne: false,
+            amountSpecified: -1e16, // exact input
+            sqrtPriceLimitX96: MAX_PRICE_LIMIT
+        });
+
+        swapRouter.swap(key, swapParams1, testSettings, "");
+        swapRouter.swap(key, swapParams2, testSettings, "");
+
+        Currency[] memory currencies = new Currency[](2);
+        currencies[0] = currency0;
+        currencies[1] = currency1;
+
+        uint256 balance0Before = currency0.balanceOf(address(this));
+        uint256 balance1Before = currency1.balanceOf(address(this));
+
+        uint256 hookCurrency0BalanceBefore = currency0.balanceOf(address(hook));
+        uint256 hookCurrency1BalanceBefore = currency1.balanceOf(address(hook));
+
+        hook.withdrawFees(currencies);
+
+        uint256 balance0After = currency0.balanceOf(address(this));
+        uint256 balance1After = currency1.balanceOf(address(this));
+
+        assertEq(balance0After, balance0Before + hookCurrency0BalanceBefore);
+        assertEq(balance1After, balance1Before + hookCurrency1BalanceBefore);
+
+        assertEq(currency0.balanceOf(address(hook)), 0);
+        assertEq(currency1.balanceOf(address(hook)), 0);
     }
 }

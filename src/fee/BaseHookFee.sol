@@ -41,8 +41,7 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
     /// @dev Fee is higher than the maximum allowed fee.
     error FeeTooHigh();
 
-    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {
-    }
+    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /**
      * @dev Get the fee to be applied after the swap. Takes the `address` `sender`, a `PoolKey` `key`,

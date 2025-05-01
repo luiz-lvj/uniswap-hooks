@@ -7,11 +7,9 @@ contract BaseHookFeeMock is BaseHookFee {
     uint256 public immutable fee;
     address public feeRecipient;
 
-    constructor(IPoolManager _poolManager, address _feeRecipient, uint256 _fee)
-        BaseHookFee(_poolManager)
-    {
+    constructor(IPoolManager _poolManager, uint256 _fee) BaseHookFee(_poolManager) {
         fee = _fee;
-        feeRecipient = _feeRecipient;
+        feeRecipient = msg.sender;
     }
 
     function _getHookFee(

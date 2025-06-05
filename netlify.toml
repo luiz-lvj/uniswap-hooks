@@ -2,3 +2,6 @@
 command = "npm run docs"
 publish = "build/site"
 image = "jammy"
+
+[build.environment]
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"

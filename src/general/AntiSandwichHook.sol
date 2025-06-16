@@ -11,6 +11,7 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
 import {Pool} from "v4-core/src/libraries/Pool.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
@@ -59,8 +60,19 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         Pool.State state;
     }
 
+    /**
+     * @dev Represents the amounts of currencies held in the hook contract for each pool.
+     */
+    struct CurrenciesHeld {
+        uint256 currency0Amount;
+        uint256 currency1Amount;
+    }
+
     /// @dev Maps each pool to its last checkpoint.
     mapping(PoolId id => Checkpoint) private _lastCheckpoints;
+
+    /// @dev Maps each pool to its currencies held.
+    mapping(PoolId id => CurrenciesHeld currenciesHeld) private _currenciesHeld;
 
     constructor(IPoolManager _poolManager) BaseDynamicAfterFee(_poolManager) {}
 
@@ -74,6 +86,9 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
      * For subsequent swaps in the same block:
      * - Calculates a target output based on the beginning-of-block state
      * - Sets the inherited `_targetOutput` and `_applyTargetOutput` variables to enforce price limits
+     *
+     * NOTE: the function `_handleExcessCurrencies` will distribute 10% of the currencies held in the pool to liquidity providers in range
+     * at the first swap in a block. This way, the first swap is potentially a target for JIT sandwich attacks.
      *
      */
     function _beforeSwap(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
@@ -89,6 +104,9 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
 
         // update the top-of-block `slot0` if new block
         if (_lastCheckpoint.blockNumber != currentBlock) {
+            // handle excess currencies in the pool
+            _handleExcessCurrencies(key);
+
             _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
             _lastCheckpoint.blockNumber = currentBlock;
 
@@ -234,9 +252,31 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         // reset apply flag
         _applyTargetOutput = false;
 
-        // settle and donate execess tokens to the pool
-        poolManager.donate(key, amount0, amount1, "");
-        unspecified.settle(poolManager, address(this), feeAmount, true);
+        // update the currencies held
+        _currenciesHeld[key.toId()].currency0Amount += amount0;
+        _currenciesHeld[key.toId()].currency1Amount += amount1;
+    }
+
+    /**
+     * @dev Handles the excess currencies in the pool, donating part of them to liquidity providers in range.
+     */
+    function _handleExcessCurrencies(PoolKey calldata key) internal virtual {
+        uint256 currency0Amount = _currenciesHeld[key.toId()].currency0Amount;
+        uint256 currency1Amount = _currenciesHeld[key.toId()].currency1Amount;
+
+        // we will settle 10% of the currencies held
+        uint256 currency0AmountToSettle = FullMath.mulDiv(currency0Amount, 1000000, 10000000);
+        uint256 currency1AmountToSettle = FullMath.mulDiv(currency1Amount, 1000000, 10000000);
+
+        if (currency0AmountToSettle > 0 || currency1AmountToSettle > 0) {
+            key.currency0.settle(poolManager, address(this), currency0AmountToSettle, true);
+            key.currency1.settle(poolManager, address(this), currency1AmountToSettle, true);
+
+            poolManager.donate(key, currency0AmountToSettle, currency1AmountToSettle, "");
+
+            _currenciesHeld[key.toId()].currency0Amount -= currency0AmountToSettle;
+            _currenciesHeld[key.toId()].currency1Amount -= currency1AmountToSettle;
+        }
     }
 
     /**

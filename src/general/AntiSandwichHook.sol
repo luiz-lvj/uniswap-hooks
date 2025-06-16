@@ -269,13 +269,12 @@ contract AntiSandwichHook is BaseDynamicAfterFee {
         uint256 currency1AmountToSettle = FullMath.mulDiv(currency1Amount, 1000000, 10000000);
 
         if (currency0AmountToSettle > 0 || currency1AmountToSettle > 0) {
+            _currenciesHeld[key.toId()].currency0Amount -= currency0AmountToSettle;
+            _currenciesHeld[key.toId()].currency1Amount -= currency1AmountToSettle;
             key.currency0.settle(poolManager, address(this), currency0AmountToSettle, true);
             key.currency1.settle(poolManager, address(this), currency1AmountToSettle, true);
 
             poolManager.donate(key, currency0AmountToSettle, currency1AmountToSettle, "");
-
-            _currenciesHeld[key.toId()].currency0Amount -= currency0AmountToSettle;
-            _currenciesHeld[key.toId()].currency1Amount -= currency1AmountToSettle;
         }
     }
 

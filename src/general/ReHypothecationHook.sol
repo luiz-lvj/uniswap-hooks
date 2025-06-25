@@ -72,6 +72,9 @@ abstract contract ReHypothecationHook is BaseHook {
         }
         IERC20(Currency.unwrap(poolKey.currency1)).safeTransferFrom(msg.sender, address(this), amount1);
 
+        _depositOnYieldSource(poolKey.currency0, amount0);
+        _depositOnYieldSource(poolKey.currency1, amount1);
+
         emit ReHypothecatedLiquidityAdded(msg.sender, sharesAmount, amount0, amount1);
     }
 
@@ -83,8 +86,13 @@ abstract contract ReHypothecationHook is BaseHook {
 
         _decreaseShares(owner, sharesAmount);
 
+        _withdrawFromYieldSource(poolKey.currency0, amount0);
+        _withdrawFromYieldSource(poolKey.currency1, amount1);
+
         poolKey.currency0.transfer(owner, amount0);
         poolKey.currency1.transfer(owner, amount1);
+
+        emit ReHypothecatedLiquidityRemoved(owner, sharesAmount, amount0, amount1);
     }
 
     function _beforeSwap(address, PoolKey calldata key, SwapParams calldata params, bytes calldata)

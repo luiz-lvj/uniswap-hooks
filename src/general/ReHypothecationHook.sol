@@ -9,6 +9,7 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {IERC4626} from "openzeppelin/interfaces/IERC4626.sol";
 
 // External imports
 import {Pool} from "v4-core/src/libraries/Pool.sol";
@@ -36,6 +37,7 @@ abstract contract ReHypothecationHook is BaseHook {
     using SafeCast for *;
 
     uint256 public totalShares;
+
     mapping(address => uint256) private shares;
 
     error ZeroLiquidity();
@@ -48,10 +50,14 @@ abstract contract ReHypothecationHook is BaseHook {
     error RefundFailed();
 
     event ReHypothecatedLiquidityAdded(address indexed sender, uint256 sharesAmount, uint256 amount0, uint256 amount1);
+    event ReHypothecatedLiquidityRemoved(address indexed sender, uint256 sharesAmount, uint256 amount0, uint256 amount1);
 
     PoolKey public poolKey;
 
-    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
+    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {
+        yieldSourceCurrency0 = _yieldSourceCurrency0;
+        yieldSourceCurrency1 = _yieldSourceCurrency1;
+    }
 
     function addReHypothecatedLiquidity(uint256 sharesAmount) external payable {
         if (poolKey.currency1.isAddressZero()) revert PoolKeyNotInitialized();
@@ -160,8 +166,17 @@ abstract contract ReHypothecationHook is BaseHook {
         internal
         virtual
         returns (uint256 amount0, uint256 amount1);
+    
+    function getYieldSourceForCurrency(Currency currency) internal view virtual returns (address) {
+        if (currency == poolKey.currency0) return yieldSourceCurrency0;
+        if (currency == poolKey.currency1) return yieldSourceCurrency1;
+        revert InvalidCurrency();
+    }
 
-    function _depositOnYieldSource(Currency currency, uint256 amount) internal virtual;
+    function _depositOnYieldSource(Currency currency, uint256 amount) internal virtual {
+        address yieldSource = getYieldSourceForCurrency(currency);
+        IERC4626(yieldSource).deposit(amount, address(this));
+    }
 
     function _withdrawFromYieldSource(Currency currency, uint256 amount) internal virtual;
 

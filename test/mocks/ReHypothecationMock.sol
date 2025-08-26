@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import "src/general/ReHypothecationHook.sol";
+import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 
 contract ReHypothecationMock is ReHypothecationHook {
     error InvalidCurrency();
@@ -12,6 +13,7 @@ contract ReHypothecationMock is ReHypothecationHook {
     constructor(IPoolManager _poolManager, address _yieldSource0, address _yieldSource1)
         ReHypothecationHook()
         BaseHook(_poolManager)
+        ERC20("ReHypothecationMock", "RHM")
     {
         yieldSource0 = _yieldSource0;
         yieldSource1 = _yieldSource1;

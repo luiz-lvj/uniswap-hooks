@@ -77,6 +77,8 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
 
         assertEq(manager.getLiquidity(key.toId()), 0, "Liquidity should be 0");
 
+        assertEq(hook.balanceOf(address(this)), liquidity, "Hook balance should be the same as the liquidity");
+
         // add rehypothecated liquidity should be equal to modifyPoolLiquidity with a pool with the same state
         BalanceDelta expectedDelta = modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), int256(uint256(liquidity)), 0);
         assertEq(delta, expectedDelta, "Delta should be equal");
@@ -107,5 +109,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
 
         assertEq(IERC4626(address(yieldSource0)).balanceOf(address(hook)), 0, "YieldSource0 balance should be 0");
         assertEq(IERC4626(address(yieldSource1)).balanceOf(address(hook)), 0, "YieldSource1 balance should be 0");
+
+        assertEq(hook.balanceOf(address(this)), 0, "Hook balance should be 0");
     }
 }

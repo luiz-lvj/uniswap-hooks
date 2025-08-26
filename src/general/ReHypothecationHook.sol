@@ -10,6 +10,7 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IERC4626} from "openzeppelin/interfaces/IERC4626.sol";
+import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 
 // External imports
 import {Pool} from "v4-core/src/libraries/Pool.sol";
@@ -34,18 +35,14 @@ import {LiquidityAmounts} from "v4-periphery/src/libraries/LiquidityAmounts.sol"
 
 import {console} from "forge-std/console.sol";
 
-abstract contract ReHypothecationHook is BaseHook {
+abstract contract ReHypothecationHook is BaseHook, ERC20 {
     using TransientStateLibrary for IPoolManager;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
     using SafeERC20 for IERC20;
     using SafeCast for *;
 
-    uint256 public totalShares;
-
     PoolKey internal poolKey;
-
-    mapping(address => uint256) private shares;
 
     error ZeroLiquidity();
 
@@ -86,13 +83,13 @@ abstract contract ReHypothecationHook is BaseHook {
         _depositOnYieldSource(poolKey.currency0, amount0);
         _depositOnYieldSource(poolKey.currency1, amount1);
 
-        _increaseShares(msg.sender, liquidity);
+        _mint(msg.sender, liquidity);
 
         emit ReHypothecatedLiquidityAdded(msg.sender, liquidity, amount0, amount1);
     }
 
     function removeReHypothecatedLiquidity(address owner) external returns (BalanceDelta delta) {
-        uint256 sharesAmount = shares[owner];
+        uint256 sharesAmount = balanceOf(owner);
         if (sharesAmount == 0) revert ZeroLiquidity();
 
         delta = _getDeltaForWithdrawnShares(sharesAmount);
@@ -100,7 +97,7 @@ abstract contract ReHypothecationHook is BaseHook {
         uint256 amount0 = int256(delta.amount0()).toUint256();
         uint256 amount1 = int256(delta.amount1()).toUint256();
 
-        _decreaseShares(owner, sharesAmount);
+        _burn(owner, sharesAmount);
 
         _withdrawFromYieldSource(poolKey.currency0, amount0);
         _withdrawFromYieldSource(poolKey.currency1, amount1);
@@ -209,8 +206,8 @@ abstract contract ReHypothecationHook is BaseHook {
             uint256 totalSharesCurrency0 = IERC4626(yieldSource0).maxWithdraw(address(this));
             uint256 totalSharesCurrency1 = IERC4626(yieldSource1).maxWithdraw(address(this));
 
-            uint256 amount0 = FullMath.mulDiv(sharesAmount, totalSharesCurrency0, totalShares);
-            uint256 amount1 = FullMath.mulDiv(sharesAmount, totalSharesCurrency1, totalShares);
+            uint256 amount0 = FullMath.mulDiv(sharesAmount, totalSharesCurrency0, totalSupply());
+            uint256 amount1 = FullMath.mulDiv(sharesAmount, totalSharesCurrency1, totalSupply());
 
             delta = toBalanceDelta(
                 int256(amount0).toInt128(),
@@ -261,15 +258,6 @@ abstract contract ReHypothecationHook is BaseHook {
         }
     }
 
-    function _increaseShares(address owner, uint256 sharesAmount) internal virtual {
-        totalShares += sharesAmount;
-        shares[owner] += sharesAmount;
-    }
-
-    function _decreaseShares(address owner, uint256 sharesAmount) internal virtual {
-        totalShares -= sharesAmount;
-        shares[owner] -= sharesAmount;
-    }
 
     function _getLiquidityToUse(PoolKey calldata key, SwapParams calldata params)
         internal

@@ -20,7 +20,6 @@ import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 import {console} from "forge-std/console.sol";
 
-
 contract ERC4626Mock is ERC4626 {
     constructor(IERC20 token, string memory name, string memory symbol) ERC4626(token) ERC20(name, symbol) {}
 }
@@ -36,8 +35,6 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
 
     PoolKey noHookKey;
 
-
-
     function setUp() public {
         deployFreshManagerAndRouters();
         deployMintAndApprove2Currencies();
@@ -45,11 +42,14 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
         yieldSource0 = IERC4626(new ERC4626Mock(IERC20(Currency.unwrap(currency0)), "Yield Source 0", "Y0"));
         yieldSource1 = IERC4626(new ERC4626Mock(IERC20(Currency.unwrap(currency1)), "Yield Source 1", "Y1"));
 
-
         hook = ReHypothecationMock(
             address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG))
         );
-        deployCodeTo("test/mocks/ReHypothecationMock.sol:ReHypothecationMock", abi.encode(manager, address(yieldSource0), address(yieldSource1)), address(hook));
+        deployCodeTo(
+            "test/mocks/ReHypothecationMock.sol:ReHypothecationMock",
+            abi.encode(manager, address(yieldSource0), address(yieldSource1)),
+            address(hook)
+        );
 
         (key,) = initPool(currency0, currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
         (noHookKey,) = initPool(currency0, currency1, IHooks(address(0)), fee, SQRT_PRICE_1_1);
@@ -68,24 +68,31 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
     }
 
     function test_full_cycle() public {
-
         uint128 liquidity = 1e15;
         BalanceDelta delta = hook.addReHypothecatedLiquidity(liquidity);
 
-        assertEq(IERC4626(address(yieldSource0)).balanceOf(address(hook)), uint256(liquidity), "YieldSource0 balance should be the same as the liquidity");
-        assertEq(IERC4626(address(yieldSource1)).balanceOf(address(hook)), uint256(liquidity), "YieldSource1 balance should be the same as the liquidity");
+        assertEq(
+            IERC4626(address(yieldSource0)).balanceOf(address(hook)),
+            uint256(liquidity),
+            "YieldSource0 balance should be the same as the liquidity"
+        );
+        assertEq(
+            IERC4626(address(yieldSource1)).balanceOf(address(hook)),
+            uint256(liquidity),
+            "YieldSource1 balance should be the same as the liquidity"
+        );
 
         assertEq(manager.getLiquidity(key.toId()), 0, "Liquidity should be 0");
 
         assertEq(hook.balanceOf(address(this)), liquidity, "Hook balance should be the same as the liquidity");
 
         // add rehypothecated liquidity should be equal to modifyPoolLiquidity with a pool with the same state
-        BalanceDelta expectedDelta = modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), int256(uint256(liquidity)), 0);
+        BalanceDelta expectedDelta =
+            modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), int256(uint256(liquidity)), 0);
         assertEq(delta, expectedDelta, "Delta should be equal");
 
         BalanceDelta swapDelta = swap(key, false, 1e14, ZERO_BYTES);
         BalanceDelta noHookSwapDelta = swap(noHookKey, false, 1e14, ZERO_BYTES);
-
 
         assertEq(swapDelta, noHookSwapDelta, "Swap delta should be equal");
         assertEq(manager.getLiquidity(key.toId()), 0, "Liquidity should be 0");
@@ -93,12 +100,23 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(hook)), 0, "Currency0 balance should be 0");
         assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(hook)), 0, "Currency1 balance should be 0");
 
-        assertApproxEqAbs(IERC4626(address(yieldSource0)).balanceOf(address(hook)), uint256(liquidity - uint128(swapDelta.amount0())), 2, "YieldSource0 balance should be 0");
-        assertApproxEqAbs(IERC4626(address(yieldSource1)).balanceOf(address(hook)), uint256(uint128(int128(liquidity) - swapDelta.amount1())), 2, "YieldSource1 balance should be 0");
+        assertApproxEqAbs(
+            IERC4626(address(yieldSource0)).balanceOf(address(hook)),
+            uint256(liquidity - uint128(swapDelta.amount0())),
+            2,
+            "YieldSource0 balance should be 0"
+        );
+        assertApproxEqAbs(
+            IERC4626(address(yieldSource1)).balanceOf(address(hook)),
+            uint256(uint128(int128(liquidity) - swapDelta.amount1())),
+            2,
+            "YieldSource1 balance should be 0"
+        );
 
         delta = hook.removeReHypothecatedLiquidity(address(this));
 
-        expectedDelta = modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), int256(-int128(liquidity)), 0);
+        expectedDelta =
+            modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), int256(-int128(liquidity)), 0);
 
         assertEq(delta, expectedDelta, "Delta should be equal");
 

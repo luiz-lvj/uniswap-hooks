@@ -164,11 +164,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         return TickMath.maxUsableTick(poolKey.tickSpacing);
     }
 
-    function _getDeltaForDepositedShares(uint128 liquidity)
-        internal
-        virtual
-        returns (BalanceDelta delta)
-    {
+    function _getDeltaForDepositedShares(uint128 liquidity) internal virtual returns (BalanceDelta delta) {
         int24 tickLower = getTickLower();
         int24 tickUpper = getTickUpper();
 
@@ -183,37 +179,39 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
             );
         } else if (currentTick < tickUpper) {
             delta = toBalanceDelta(
-                SqrtPriceMath.getAmount0Delta(currentSqrtPriceX96, TickMath.getSqrtPriceAtTick(tickUpper), int128(liquidity)).toInt128(),
-                SqrtPriceMath.getAmount1Delta(TickMath.getSqrtPriceAtTick(tickLower), currentSqrtPriceX96, int128(liquidity)).toInt128()
+                SqrtPriceMath.getAmount0Delta(
+                    currentSqrtPriceX96, TickMath.getSqrtPriceAtTick(tickUpper), int128(liquidity)
+                ).toInt128(),
+                SqrtPriceMath.getAmount1Delta(
+                    TickMath.getSqrtPriceAtTick(tickLower), currentSqrtPriceX96, int128(liquidity)
+                ).toInt128()
             );
         } else {
-            delta = toBalanceDelta(0, SqrtPriceMath.getAmount1Delta(TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), int128(liquidity)).toInt128());
+            delta = toBalanceDelta(
+                0,
+                SqrtPriceMath.getAmount1Delta(
+                    TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), int128(liquidity)
+                ).toInt128()
+            );
         }
 
-        if(delta.amount0() > 0 || delta.amount1() > 0) {
+        if (delta.amount0() > 0 || delta.amount1() > 0) {
             revert InvalidAmounts();
         }
     }
 
-    function _getDeltaForWithdrawnShares(uint256 sharesAmount)
-        internal
-        virtual
-        returns (BalanceDelta delta){
+    function _getDeltaForWithdrawnShares(uint256 sharesAmount) internal virtual returns (BalanceDelta delta) {
+        address yieldSource0 = getYieldSourceForCurrency(poolKey.currency0);
+        address yieldSource1 = getYieldSourceForCurrency(poolKey.currency1);
 
-            address yieldSource0 = getYieldSourceForCurrency(poolKey.currency0);
-            address yieldSource1 = getYieldSourceForCurrency(poolKey.currency1);
+        uint256 totalSharesCurrency0 = IERC4626(yieldSource0).maxWithdraw(address(this));
+        uint256 totalSharesCurrency1 = IERC4626(yieldSource1).maxWithdraw(address(this));
 
-            uint256 totalSharesCurrency0 = IERC4626(yieldSource0).maxWithdraw(address(this));
-            uint256 totalSharesCurrency1 = IERC4626(yieldSource1).maxWithdraw(address(this));
+        uint256 amount0 = FullMath.mulDiv(sharesAmount, totalSharesCurrency0, totalSupply());
+        uint256 amount1 = FullMath.mulDiv(sharesAmount, totalSharesCurrency1, totalSupply());
 
-            uint256 amount0 = FullMath.mulDiv(sharesAmount, totalSharesCurrency0, totalSupply());
-            uint256 amount1 = FullMath.mulDiv(sharesAmount, totalSharesCurrency1, totalSupply());
-
-            delta = toBalanceDelta(
-                int256(amount0).toInt128(),
-                int256(amount1).toInt128()
-            );
-        }
+        delta = toBalanceDelta(int256(amount0).toInt128(), int256(amount1).toInt128());
+    }
 
     function getYieldSourceForCurrency(Currency currency) internal view virtual returns (address);
 
@@ -258,26 +256,28 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         }
     }
 
-
     function _getLiquidityToUse(PoolKey calldata key, SwapParams calldata params)
         internal
         virtual
-        returns (uint128 liquidity){
-            uint256 balanceYieldSource0 = IERC4626(getYieldSourceForCurrency(key.currency0)).balanceOf(address(this));
-            uint256 balanceYieldSource1 = IERC4626(getYieldSourceForCurrency(key.currency1)).balanceOf(address(this));
+        returns (uint128 liquidity)
+    {
+        uint256 balanceYieldSource0 = IERC4626(getYieldSourceForCurrency(key.currency0)).balanceOf(address(this));
+        uint256 balanceYieldSource1 = IERC4626(getYieldSourceForCurrency(key.currency1)).balanceOf(address(this));
 
-            uint256 assetsCurrency0 = IERC4626(getYieldSourceForCurrency(key.currency0)).convertToAssets(balanceYieldSource0);
-            uint256 assetsCurrency1 = IERC4626(getYieldSourceForCurrency(key.currency1)).convertToAssets(balanceYieldSource1);
+        uint256 assetsCurrency0 =
+            IERC4626(getYieldSourceForCurrency(key.currency0)).convertToAssets(balanceYieldSource0);
+        uint256 assetsCurrency1 =
+            IERC4626(getYieldSourceForCurrency(key.currency1)).convertToAssets(balanceYieldSource1);
 
-            (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(poolKey.toId());
-            liquidity = LiquidityAmounts.getLiquidityForAmounts(
-                currentSqrtPriceX96,
-                TickMath.getSqrtPriceAtTick(getTickLower()),
-                TickMath.getSqrtPriceAtTick(getTickUpper()),
-                assetsCurrency0,
-                assetsCurrency1
-            );
-        }
+        (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(poolKey.toId());
+        liquidity = LiquidityAmounts.getLiquidityForAmounts(
+            currentSqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(getTickLower()),
+            TickMath.getSqrtPriceAtTick(getTickUpper()),
+            assetsCurrency0,
+            assetsCurrency1
+        );
+    }
 
     /**
      * Set the hooks permissions, specifically `afterAddLiquidity`, `afterRemoveLiquidity` and `afterRemoveLiquidityReturnDelta`.

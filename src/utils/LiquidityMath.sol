@@ -21,11 +21,11 @@ library LiquidityMath {
      * boundaries.
      */
     function calculateDeltaForLiquidity(
+        uint128 liquidity,
         int24 currentTick,
         int24 tickLower,
         int24 tickUpper,
-        uint160 currentSqrtPriceX96,
-        uint128 liquidity
+        uint160 currentSqrtPriceX96
     ) public pure returns (BalanceDelta delta) {
         if (currentTick < tickLower) {
             delta = toBalanceDelta(

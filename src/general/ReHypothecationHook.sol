@@ -22,7 +22,6 @@ import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {TransientStateLibrary} from "v4-core/src/libraries/TransientStateLibrary.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
@@ -57,7 +56,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     using SafeCast for *;
 
     /// @dev The pool key for the hook. Note that the hook only allows one key.
-    PoolKey public poolKey;
+    PoolKey private _poolKey;
 
     /// @dev Error thrown when attempting to add or remove zero liquidity.
     error ZeroLiquidity();
@@ -101,7 +100,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      * The hook might accept native currency, in which case the function `_depositOnYieldSource` must be implemented to handle it.
      */
     function addReHypothecatedLiquidity(uint128 liquidity) external payable returns (BalanceDelta delta) {
-        if (poolKey.currency1.isAddressZero()) revert PoolKeyNotInitialized();
+        if (_poolKey.currency1.isAddressZero()) revert PoolKeyNotInitialized();
 
         if (liquidity == 0) revert ZeroLiquidity();
 
@@ -110,7 +109,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         uint256 amount0 = int256(-delta.amount0()).toUint256();
         uint256 amount1 = int256(-delta.amount1()).toUint256();
 
-        if (poolKey.currency0.isAddressZero()) {
+        if (_poolKey.currency0.isAddressZero()) {
             if (msg.value < amount0) revert InvalidMsgValue();
             uint256 refund = msg.value - amount0;
             if (refund > 0) {
@@ -121,12 +120,12 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
             if (msg.value > 0) {
                 revert InvalidMsgValue();
             }
-            IERC20(Currency.unwrap(poolKey.currency0)).safeTransferFrom(msg.sender, address(this), amount0);
+            IERC20(Currency.unwrap(_poolKey.currency0)).safeTransferFrom(msg.sender, address(this), amount0);
         }
-        IERC20(Currency.unwrap(poolKey.currency1)).safeTransferFrom(msg.sender, address(this), amount1);
+        IERC20(Currency.unwrap(_poolKey.currency1)).safeTransferFrom(msg.sender, address(this), amount1);
 
-        _depositOnYieldSource(poolKey.currency0, amount0);
-        _depositOnYieldSource(poolKey.currency1, amount1);
+        _depositOnYieldSource(_poolKey.currency0, amount0);
+        _depositOnYieldSource(_poolKey.currency1, amount1);
 
         _mint(msg.sender, liquidity);
 
@@ -150,7 +149,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      * consider implementing a separate function or using standard ERC20 transfer mechanisms.
      */
     function removeReHypothecatedLiquidity(address owner) external returns (BalanceDelta delta) {
-        if (poolKey.currency1.isAddressZero()) revert PoolKeyNotInitialized();
+        if (_poolKey.currency1.isAddressZero()) revert PoolKeyNotInitialized();
 
         uint256 sharesAmount = balanceOf(owner);
         if (sharesAmount == 0) revert ZeroLiquidity();
@@ -162,11 +161,11 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
 
         _burn(owner, sharesAmount);
 
-        _withdrawFromYieldSource(poolKey.currency0, amount0);
-        _withdrawFromYieldSource(poolKey.currency1, amount1);
+        _withdrawFromYieldSource(_poolKey.currency0, amount0);
+        _withdrawFromYieldSource(_poolKey.currency1, amount1);
 
-        poolKey.currency0.transfer(owner, amount0);
-        poolKey.currency1.transfer(owner, amount1);
+        _poolKey.currency0.transfer(owner, amount0);
+        _poolKey.currency1.transfer(owner, amount1);
 
         emit ReHypothecatedLiquidityRemoved(owner, uint128(sharesAmount), amount0, amount1);
     }
@@ -177,10 +176,10 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      */
     function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
         // Check if the pool key is already initialized
-        if (address(poolKey.hooks) != address(0)) revert AlreadyInitialized();
+        if (address(_poolKey.hooks) != address(0)) revert AlreadyInitialized();
 
         // Store the pool key to be used in other functions
-        poolKey = key;
+        _poolKey = key;
         return this.beforeInitialize.selector;
     }
 
@@ -239,14 +238,14 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      * @dev Returns the lower tick boundary for the hook's liquidity position.
      */
     function getTickLower() public view virtual returns (int24) {
-        return TickMath.minUsableTick(poolKey.tickSpacing);
+        return TickMath.minUsableTick(_poolKey.tickSpacing);
     }
 
     /**
      * @dev Returns the upper tick boundary for the hook's liquidity position.
      */
     function getTickUpper() public view virtual returns (int24) {
-        return TickMath.maxUsableTick(poolKey.tickSpacing);
+        return TickMath.maxUsableTick(_poolKey.tickSpacing);
     }
 
     /**
@@ -265,7 +264,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         int24 tickLower = getTickLower();
         int24 tickUpper = getTickUpper();
 
-        (uint160 currentSqrtPriceX96, int24 currentTick,,) = poolManager.getSlot0(poolKey.toId());
+        (uint160 currentSqrtPriceX96, int24 currentTick,,) = poolManager.getSlot0(_poolKey.toId());
 
         delta =
             LiquidityMath.calculateDeltaForLiquidity(currentTick, tickLower, tickUpper, currentSqrtPriceX96, liquidity);
@@ -285,8 +284,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      * The function returns a balance delta representing the currency amounts to withdraw.
      */
     function _getDeltaForWithdrawnShares(uint256 sharesAmount) internal virtual returns (BalanceDelta delta) {
-        address yieldSource0 = getYieldSourceForCurrency(poolKey.currency0);
-        address yieldSource1 = getYieldSourceForCurrency(poolKey.currency1);
+        address yieldSource0 = getYieldSourceForCurrency(_poolKey.currency0);
+        address yieldSource1 = getYieldSourceForCurrency(_poolKey.currency1);
 
         uint256 totalSharesCurrency0 = IERC4626(yieldSource0).maxWithdraw(address(this));
         uint256 totalSharesCurrency1 = IERC4626(yieldSource1).maxWithdraw(address(this));
@@ -300,7 +299,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /**
      * @dev Returns the yield source address for a given currency.
      */
-    function getYieldSourceForCurrency(Currency currency) internal view virtual returns (address);
+    function getYieldSourceForCurrency(Currency currency) public view virtual returns (address);
 
     /**
      * @dev Deposits a specified amount of a currency into its corresponding yield source.
@@ -336,7 +335,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      */
     function _modifyLiquidity(int256 liquidityDelta) internal virtual returns (BalanceDelta delta) {
         (delta,) = poolManager.modifyLiquidity(
-            poolKey,
+            _poolKey,
             ModifyLiquidityParams({
                 tickLower: getTickLower(),
                 tickUpper: getTickUpper(),
@@ -393,7 +392,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         uint256 assetsCurrency1 =
             IERC4626(getYieldSourceForCurrency(key.currency1)).convertToAssets(balanceYieldSource1);
 
-        (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(poolKey.toId());
+        (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(key.toId());
         liquidity = LiquidityAmounts.getLiquidityForAmounts(
             currentSqrtPriceX96,
             TickMath.getSqrtPriceAtTick(getTickLower()),
@@ -401,6 +400,13 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
             assetsCurrency0,
             assetsCurrency1
         );
+    }
+
+    /**
+     * @dev Returns the pool key for the hook.
+     */
+    function getPoolKey() public view returns (PoolKey memory) {
+        return _poolKey;
     }
 
     /**

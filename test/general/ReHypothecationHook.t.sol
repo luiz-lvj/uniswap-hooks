@@ -6,13 +6,11 @@ import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {ReHypothecationHook} from "../../src/general/ReHypothecationHook.sol";
-import {ReHypothecationMock} from "../mocks/ReHypothecationMock.sol";
+import {ReHypothecationMock} from "../../src/mocks/ReHypothecationMock.sol";
 import {HookTest} from "../utils/HookTest.sol";
-import {toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {BalanceDeltaAssertions} from "../utils/BalanceDeltaAssertions.sol";
 import {ERC4626} from "openzeppelin/token/ERC20/extensions/ERC4626.sol";
 import {IERC4626} from "openzeppelin/interfaces/IERC4626.sol";
@@ -45,7 +43,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
             address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG))
         );
         deployCodeTo(
-            "test/mocks/ReHypothecationMock.sol:ReHypothecationMock",
+            "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
             abi.encode(manager, address(yieldSource0), address(yieldSource1)),
             address(hook)
         );
@@ -189,7 +187,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
         );
 
         deployCodeTo(
-            "test/mocks/ReHypothecationMock.sol:ReHypothecationMock",
+            "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
             abi.encode(manager, address(yieldSource0), address(yieldSource1)),
             address(newHook)
         );
@@ -213,7 +211,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
         );
 
         deployCodeTo(
-            "test/mocks/ReHypothecationMock.sol:ReHypothecationMock",
+            "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
             abi.encode(manager, address(yieldSource0), address(yieldSource1)),
             address(newHook)
         );
@@ -227,7 +225,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
         );
 
         deployCodeTo(
-            "test/mocks/ReHypothecationMock.sol:ReHypothecationMock",
+            "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
             abi.encode(manager, address(yieldSource0), address(yieldSource1)),
             address(newHook)
         );
@@ -246,7 +244,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
         );
 
         deployCodeTo(
-            "test/mocks/ReHypothecationMock.sol:ReHypothecationMock",
+            "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
             abi.encode(manager, address(yieldSource0), address(yieldSource1)),
             address(newHook)
         );

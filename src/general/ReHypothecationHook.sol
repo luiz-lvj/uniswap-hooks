@@ -191,7 +191,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      * Note that at this point there's no really transfer of tokens to the pool, this addition of liquidity
      * creates a currencyDelta to the hook, which must be settled in the `_afterSwap` function.
      */
-    function _beforeSwap(address /* sender */, PoolKey calldata key, SwapParams calldata params, bytes calldata)
+    function _beforeSwap(address, /* sender */ PoolKey calldata key, SwapParams calldata params, bytes calldata)
         internal
         virtual
         override
@@ -214,10 +214,10 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      * asserts the hook's deltas in each currency in order to zero them.
      */
     function _afterSwap(
-        address /* sender */,
+        address, /* sender */
         PoolKey calldata key,
-        SwapParams calldata /* params */,
-        BalanceDelta /* delta */,
+        SwapParams calldata, /* params */
+        BalanceDelta, /* delta */
         bytes calldata /* hookData */
     ) internal virtual override returns (bytes4, int128) {
         // Get the hook owned liquidity currently in the pool

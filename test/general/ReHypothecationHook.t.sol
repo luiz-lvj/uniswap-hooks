@@ -41,6 +41,8 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
         (key,) = initPool(currency0, currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
         (noHookKey,) = initPool(currency0, currency1, IHooks(address(0)), fee, SQRT_PRICE_1_1);
 
+        hook.setYieldSources(address(yieldSource0), address(yieldSource1));
+
         IERC20(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
         IERC20(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);
 
@@ -54,7 +56,6 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
     }
 
     function test_full_cycle() public {
-        hook.setYieldSources(address(yieldSource0), address(yieldSource1));
         uint128 liquidity = 1e15;
         BalanceDelta delta = hook.addReHypothecatedLiquidity(liquidity);
 

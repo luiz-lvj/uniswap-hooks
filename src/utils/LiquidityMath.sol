@@ -26,7 +26,7 @@ library LiquidityMath {
         int24 tickLower,
         int24 tickUpper,
         uint160 currentSqrtPriceX96
-    ) public pure returns (BalanceDelta delta) {
+    ) internal pure returns (BalanceDelta delta) {
         if (currentTick < tickLower) {
             delta = toBalanceDelta(
                 SqrtPriceMath.getAmount0Delta(

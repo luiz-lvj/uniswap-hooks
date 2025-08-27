@@ -6,6 +6,7 @@ pragma solidity ^0.8.24;
 // Internal imports
 import {BaseHook} from "../base/BaseHook.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
+import {LiquidityMath} from "../utils/LiquidityMath.sol";
 
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
@@ -175,30 +176,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
 
         (uint160 currentSqrtPriceX96, int24 currentTick,,) = poolManager.getSlot0(poolKey.toId());
 
-        if (currentTick < tickLower) {
-            delta = toBalanceDelta(
-                SqrtPriceMath.getAmount0Delta(
-                    TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), int128(liquidity)
-                ).toInt128(),
-                0
-            );
-        } else if (currentTick < tickUpper) {
-            delta = toBalanceDelta(
-                SqrtPriceMath.getAmount0Delta(
-                    currentSqrtPriceX96, TickMath.getSqrtPriceAtTick(tickUpper), int128(liquidity)
-                ).toInt128(),
-                SqrtPriceMath.getAmount1Delta(
-                    TickMath.getSqrtPriceAtTick(tickLower), currentSqrtPriceX96, int128(liquidity)
-                ).toInt128()
-            );
-        } else {
-            delta = toBalanceDelta(
-                0,
-                SqrtPriceMath.getAmount1Delta(
-                    TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), int128(liquidity)
-                ).toInt128()
-            );
-        }
+        delta =
+            LiquidityMath.calculateDeltaForLiquidity(currentTick, tickLower, tickUpper, currentSqrtPriceX96, liquidity);
 
         if (delta.amount0() > 0 || delta.amount1() > 0) {
             revert InvalidAmounts();

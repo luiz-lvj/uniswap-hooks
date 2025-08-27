@@ -42,15 +42,15 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
         hook = ReHypothecationMock(
             address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG))
         );
-        deployCodeTo(
-            "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
-            abi.encode(manager, address(yieldSource0), address(yieldSource1)),
-            address(hook)
-        );
+        // deployCodeTo(
+        //     "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
+        //     abi.encode(manager, address(yieldSource0), address(yieldSource1)),
+        //     address(hook)
+        // );
 
-        (key,) = initPool(currency0, currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
-        (noHookKey,) = initPool(currency0, currency1, IHooks(address(0)), fee, SQRT_PRICE_1_1);
-        hook.setYieldSources(address(yieldSource0), address(yieldSource1));
+        // (key,) = initPool(currency0, currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
+        // (noHookKey,) = initPool(currency0, currency1, IHooks(address(0)), fee, SQRT_PRICE_1_1);
+        // hook.setYieldSources(address(yieldSource0), address(yieldSource1));
 
         IERC20(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
         IERC20(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);

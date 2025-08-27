@@ -9,9 +9,17 @@ import {SqrtPriceMath} from "v4-core/src/libraries/SqrtPriceMath.sol";
 
 import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
 
+/**
+ * @dev Library with helper functions for liquidity math.
+ */
 library LiquidityMath {
     using SafeCast for *;
 
+    /**
+     * @dev Calculates the delta necessary to provide a given `liquidity` amount to a pool, based
+     * on the pool's `currentTick` and `currentSqrtPriceX96` and the `tickLower` and `tickUpper`
+     * boundaries.
+     */
     function calculateDeltaForLiquidity(
         int24 currentTick,
         int24 tickLower,

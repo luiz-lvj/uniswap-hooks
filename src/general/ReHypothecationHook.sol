@@ -52,7 +52,6 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     using TransientStateLibrary for IPoolManager;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
-    using LiquidityMath for uint128;
     using SafeERC20 for IERC20;
     using SafeCast for *;
 
@@ -272,7 +271,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
 
         (uint160 currentSqrtPriceX96, int24 currentTick,,) = poolManager.getSlot0(_poolKey.toId());
 
-        delta = liquidity.calculateDeltaForLiquidity(currentTick, tickLower, tickUpper, currentSqrtPriceX96);
+        delta =
+            LiquidityMath.calculateDeltaForLiquidity(liquidity, currentTick, tickLower, tickUpper, currentSqrtPriceX96);
 
         if (delta.amount0() > 0 || delta.amount1() > 0) {
             revert InvalidAmounts();

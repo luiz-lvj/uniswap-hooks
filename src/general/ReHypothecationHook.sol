@@ -42,7 +42,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     using SafeERC20 for IERC20;
     using SafeCast for *;
 
-    PoolKey internal poolKey;
+    PoolKey public poolKey;
 
     error ZeroLiquidity();
 
@@ -76,6 +76,9 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
                 if (!success) revert RefundFailed();
             }
         } else {
+            if (msg.value > 0) {
+                revert InvalidMsgValue();
+            }
             IERC20(Currency.unwrap(poolKey.currency0)).safeTransferFrom(msg.sender, address(this), amount0);
         }
         IERC20(Currency.unwrap(poolKey.currency1)).safeTransferFrom(msg.sender, address(this), amount1);
@@ -89,6 +92,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     }
 
     function removeReHypothecatedLiquidity(address owner) external returns (BalanceDelta delta) {
+        if (poolKey.currency1.isAddressZero()) revert PoolKeyNotInitialized();
+
         uint256 sharesAmount = balanceOf(owner);
         if (sharesAmount == 0) revert ZeroLiquidity();
 

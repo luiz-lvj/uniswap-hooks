@@ -130,4 +130,47 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
 
         assertEq(hook.balanceOf(address(this)), 0, "Hook balance should be 0");
     }
+
+    function test_add_rehypothecated_liquidity_zero_liquidity_reverts() public {
+        vm.expectRevert(ReHypothecationHook.ZeroLiquidity.selector);
+        hook.addReHypothecatedLiquidity(0);
+    }
+
+    function test_add_rehypothecated_liquidity_uninitialized_pool_key_reverts() public {
+        ReHypothecationHook newHook = ReHypothecationMock(
+            address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
+        );
+
+        deployCodeTo(
+            "test/mocks/ReHypothecationMock.sol:ReHypothecationMock",
+            abi.encode(manager, address(yieldSource0), address(yieldSource1)),
+            address(newHook)
+        );
+        vm.expectRevert(ReHypothecationHook.PoolKeyNotInitialized.selector);
+        newHook.addReHypothecatedLiquidity(1e15);
+    }
+
+    function test_add_rehypothecated_liquidity_msg_value_reverts() public {
+        vm.expectRevert(ReHypothecationHook.InvalidMsgValue.selector);
+        hook.addReHypothecatedLiquidity{value: 1e5}(1e15);
+    }
+
+    function test_remove_rehypothecated_liquidity_zero_liquidity_reverts() public {
+        vm.expectRevert(ReHypothecationHook.ZeroLiquidity.selector);
+        hook.removeReHypothecatedLiquidity(address(this));
+    }
+
+    function test_remove_rehypothecated_liquidity_uninitialized_pool_key_reverts() public {
+        ReHypothecationHook newHook = ReHypothecationMock(
+            address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
+        );
+
+        deployCodeTo(
+            "test/mocks/ReHypothecationMock.sol:ReHypothecationMock",
+            abi.encode(manager, address(yieldSource0), address(yieldSource1)),
+            address(newHook)
+        );
+        vm.expectRevert(ReHypothecationHook.PoolKeyNotInitialized.selector);
+        newHook.removeReHypothecatedLiquidity(address(this));
+    }
 }

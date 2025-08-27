@@ -182,7 +182,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
     }
 
     function test_add_rehypothecated_liquidity_uninitialized_pool_key_reverts() public {
-        ReHypothecationHook newHook = ReHypothecationMock(
+        ReHypothecationMock newHook = ReHypothecationMock(
             address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
         );
 
@@ -206,7 +206,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
     }
 
     function test_remove_rehypothecated_liquidity_uninitialized_pool_key_reverts() public {
-        ReHypothecationHook newHook = ReHypothecationMock(
+        ReHypothecationMock newHook = ReHypothecationMock(
             address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
         );
 
@@ -220,7 +220,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
     }
 
     function test_add_rehypothecated_liquidity_invalid_currency_reverts() public {
-        ReHypothecationHook newHook = ReHypothecationMock(
+        ReHypothecationMock newHook = ReHypothecationMock(
             address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
         );
 
@@ -239,7 +239,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
     }
 
     function test_add_rehypothecated_liquidity_native_reverts() public {
-        ReHypothecationHook newHook = ReHypothecationMock(
+        ReHypothecationMock newHook = ReHypothecationMock(
             address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
         );
 

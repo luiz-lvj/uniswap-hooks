@@ -48,15 +48,15 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
             address(hook)
         );
 
-        // (key,) = initPool(currency0, currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
-        // (noHookKey,) = initPool(currency0, currency1, IHooks(address(0)), fee, SQRT_PRICE_1_1);
-        // hook.setYieldSources(address(yieldSource0), address(yieldSource1));
+        (key,) = initPool(currency0, currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
+        (noHookKey,) = initPool(currency0, currency1, IHooks(address(0)), fee, SQRT_PRICE_1_1);
+        hook.setYieldSources(address(yieldSource0), address(yieldSource1));
 
-        // IERC20(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
-        // IERC20(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);
+        IERC20(Currency.unwrap(currency0)).approve(address(hook), type(uint256).max);
+        IERC20(Currency.unwrap(currency1)).approve(address(hook), type(uint256).max);
 
-        // vm.label(Currency.unwrap(currency0), "currency0");
-        // vm.label(Currency.unwrap(currency1), "currency1");
+        vm.label(Currency.unwrap(currency0), "currency0");
+        vm.label(Currency.unwrap(currency1), "currency1");
     }
 
 //     function test_already_initialized_reverts() public {

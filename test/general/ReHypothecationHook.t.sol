@@ -60,7 +60,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
     }
 
     function test_pass() public {
-        assertEq(1, 1);
+        assert(true);
     }
 
     // function test_already_initialized_reverts() public {

@@ -158,9 +158,6 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
             modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), int256(uint256(liquidity)), 0);
         assertEq(delta, expectedDelta, "Delta should be equal");
 
-        BalanceDelta swapDelta = swap(key, false, 1e14, ZERO_BYTES);
-        BalanceDelta noHookSwapDelta = swap(noHookKey, false, 1e14, ZERO_BYTES);
-
         assertEq(manager.getLiquidity(key.toId()), 0, "Liquidity should be 0");
 
         assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(hook)), 0, "Currency0 balance should be 0");
@@ -236,8 +233,8 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
             address(newHook)
         );
 
-        (PoolKey memory newKey,) =
-            initPool(Currency.wrap(address(0)), currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
+
+        initPool(Currency.wrap(address(0)), currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
 
         IERC20(Currency.unwrap(currency1)).approve(address(newHook), type(uint256).max);
 
@@ -256,8 +253,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
             address(newHook)
         );
 
-        (PoolKey memory newKey,) =
-            initPool(Currency.wrap(address(0)), currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
+        initPool(Currency.wrap(address(0)), currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
 
         vm.expectRevert(ReHypothecationHook.InvalidMsgValue.selector);
         newHook.addReHypothecatedLiquidity{value: 1e14}(1e15);

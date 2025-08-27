@@ -27,17 +27,14 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
     ReHypothecationMock hook;
     uint24 fee = 1000; // 0.1%
 
-    IERC4626 yieldSource0;
-    IERC4626 yieldSource1;
+    IERC4626 yieldSource0 = IERC4626(makeAddr("yieldSource0"));
+    IERC4626 yieldSource1 = IERC4626(makeAddr("yieldSource1"));
 
     PoolKey noHookKey;
 
     function setUp() public {
         deployFreshManagerAndRouters();
         deployMintAndApprove2Currencies();
-
-        yieldSource0 = IERC4626(new ERC4626Mock(IERC20(Currency.unwrap(currency0)), "Yield Source 0", "Y0"));
-        yieldSource1 = IERC4626(new ERC4626Mock(IERC20(Currency.unwrap(currency1)), "Yield Source 1", "Y1"));
 
         hook = ReHypothecationMock(
             address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG))
@@ -46,6 +43,17 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
             "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
             abi.encode(manager, address(yieldSource0), address(yieldSource1)),
             address(hook)
+        );
+
+        deployCodeTo(
+            "test/general/ReHypothecationHook.t.sol:ERC4626Mock",
+            abi.encode(IERC20(Currency.unwrap(currency0)), "Yield Source 0", "Y0"),
+            address(yieldSource0)
+        );
+        deployCodeTo(
+            "test/general/ReHypothecationHook.t.sol:ERC4626Mock",
+            abi.encode(IERC20(Currency.unwrap(currency1)), "Yield Source 1", "Y1"),
+            address(yieldSource1)
         );
 
         (key,) = initPool(currency0, currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);

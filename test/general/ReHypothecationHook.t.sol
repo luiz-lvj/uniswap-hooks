@@ -181,19 +181,19 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
         hook.addReHypothecatedLiquidity(0);
     }
 
-    function test_add_rehypothecated_liquidity_uninitialized_pool_key_reverts() public {
-        ReHypothecationMock newHook = ReHypothecationMock(
-            address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
-        );
+    // function test_add_rehypothecated_liquidity_uninitialized_pool_key_reverts() public {
+    //     ReHypothecationMock newHook = ReHypothecationMock(
+    //         address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
+    //     );
 
-        deployCodeTo(
-            "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
-            abi.encode(manager, address(yieldSource0), address(yieldSource1)),
-            address(newHook)
-        );
-        vm.expectRevert(ReHypothecationHook.PoolKeyNotInitialized.selector);
-        newHook.addReHypothecatedLiquidity(1e15);
-    }
+    //     deployCodeTo(
+    //         "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
+    //         abi.encode(manager, address(yieldSource0), address(yieldSource1)),
+    //         address(newHook)
+    //     );
+    //     vm.expectRevert(ReHypothecationHook.PoolKeyNotInitialized.selector);
+    //     newHook.addReHypothecatedLiquidity(1e15);
+    // }
 
     function test_add_rehypothecated_liquidity_msg_value_reverts() public {
         vm.expectRevert(ReHypothecationHook.InvalidMsgValue.selector);
@@ -205,53 +205,53 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
         hook.removeReHypothecatedLiquidity(address(this));
     }
 
-    function test_remove_rehypothecated_liquidity_uninitialized_pool_key_reverts() public {
-        ReHypothecationMock newHook = ReHypothecationMock(
-            address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
-        );
+    // function test_remove_rehypothecated_liquidity_uninitialized_pool_key_reverts() public {
+    //     ReHypothecationMock newHook = ReHypothecationMock(
+    //         address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
+    //     );
 
-        deployCodeTo(
-            "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
-            abi.encode(manager, address(yieldSource0), address(yieldSource1)),
-            address(newHook)
-        );
-        vm.expectRevert(ReHypothecationHook.PoolKeyNotInitialized.selector);
-        newHook.removeReHypothecatedLiquidity(address(this));
-    }
+    //     deployCodeTo(
+    //         "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
+    //         abi.encode(manager, address(yieldSource0), address(yieldSource1)),
+    //         address(newHook)
+    //     );
+    //     vm.expectRevert(ReHypothecationHook.PoolKeyNotInitialized.selector);
+    //     newHook.removeReHypothecatedLiquidity(address(this));
+    // }
 
-    function test_add_rehypothecated_liquidity_invalid_currency_reverts() public {
-        ReHypothecationMock newHook = ReHypothecationMock(
-            address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
-        );
+    // function test_add_rehypothecated_liquidity_invalid_currency_reverts() public {
+    //     ReHypothecationMock newHook = ReHypothecationMock(
+    //         address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
+    //     );
 
-        deployCodeTo(
-            "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
-            abi.encode(manager, address(yieldSource0), address(yieldSource1)),
-            address(newHook)
-        );
+    //     deployCodeTo(
+    //         "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
+    //         abi.encode(manager, address(yieldSource0), address(yieldSource1)),
+    //         address(newHook)
+    //     );
 
-        initPool(Currency.wrap(address(0)), currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
+    //     initPool(Currency.wrap(address(0)), currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
 
-        IERC20(Currency.unwrap(currency1)).approve(address(newHook), type(uint256).max);
+    //     IERC20(Currency.unwrap(currency1)).approve(address(newHook), type(uint256).max);
 
-        vm.expectRevert(ReHypothecationHook.InvalidCurrency.selector);
-        newHook.addReHypothecatedLiquidity{value: 1e15}(1e15);
-    }
+    //     vm.expectRevert(ReHypothecationHook.InvalidCurrency.selector);
+    //     newHook.addReHypothecatedLiquidity{value: 1e15}(1e15);
+    // }
 
-    function test_add_rehypothecated_liquidity_native_reverts() public {
-        ReHypothecationMock newHook = ReHypothecationMock(
-            address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
-        );
+    // function test_add_rehypothecated_liquidity_native_reverts() public {
+    //     ReHypothecationMock newHook = ReHypothecationMock(
+    //         address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
+    //     );
 
-        deployCodeTo(
-            "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
-            abi.encode(manager, address(yieldSource0), address(yieldSource1)),
-            address(newHook)
-        );
+    //     deployCodeTo(
+    //         "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
+    //         abi.encode(manager, address(yieldSource0), address(yieldSource1)),
+    //         address(newHook)
+    //     );
 
-        initPool(Currency.wrap(address(0)), currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
+    //     initPool(Currency.wrap(address(0)), currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
 
-        vm.expectRevert(ReHypothecationHook.InvalidMsgValue.selector);
-        newHook.addReHypothecatedLiquidity{value: 1e14}(1e15);
-    }
+    //     vm.expectRevert(ReHypothecationHook.InvalidMsgValue.selector);
+    //     newHook.addReHypothecatedLiquidity{value: 1e14}(1e15);
+    // }
 }

@@ -37,4 +37,7 @@ contract ReHypothecationMock is ReHypothecationHook {
         }
         revert InvalidCurrency();
     }
+
+    // Exclude from coverage report
+    function test() public {}
 }

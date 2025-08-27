@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.24;
 
 import {ReHypothecationHook} from "src/general/ReHypothecationHook.sol";
 import {BaseHook} from "src/base/BaseHook.sol";

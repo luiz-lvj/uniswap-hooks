@@ -9,17 +9,11 @@ import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {ReHypothecationHook} from "src/general/ReHypothecationHook.sol";
-import {ReHypothecationMock} from "src/mocks/ReHypothecationMock.sol";
+import {ReHypothecationMock, ERC4626Mock} from "src/mocks/ReHypothecationMock.sol";
 import {HookTest} from "../utils/HookTest.sol";
 import {BalanceDeltaAssertions} from "../utils/BalanceDeltaAssertions.sol";
-import {ERC4626} from "openzeppelin/token/ERC20/extensions/ERC4626.sol";
 import {IERC4626} from "openzeppelin/interfaces/IERC4626.sol";
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
-import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
-
-contract ERC4626Mock is ERC4626 {
-    constructor(IERC20 token, string memory name, string memory symbol) ERC4626(token) ERC20(name, symbol) {}
-}
 
 contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
     using StateLibrary for IPoolManager;

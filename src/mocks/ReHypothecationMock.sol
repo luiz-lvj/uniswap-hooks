@@ -6,6 +6,12 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
+import {ERC4626} from "openzeppelin/token/ERC20/extensions/ERC4626.sol";
+import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
+
+contract ERC4626Mock is ERC4626 {
+    constructor(IERC20 token, string memory name, string memory symbol) ERC4626(token) ERC20(name, symbol) {}
+}
 
 contract ReHypothecationMock is ReHypothecationHook {
     address private _yieldSource0;

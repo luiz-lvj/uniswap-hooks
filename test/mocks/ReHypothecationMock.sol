@@ -5,8 +5,6 @@ import "src/general/ReHypothecationHook.sol";
 import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 
 contract ReHypothecationMock is ReHypothecationHook {
-    error InvalidCurrency();
-
     address public yieldSource0;
     address public yieldSource1;
 

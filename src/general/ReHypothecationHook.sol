@@ -56,6 +56,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
 
     error InvalidAmounts();
 
+    error InvalidCurrency();
+
     event ReHypothecatedLiquidityAdded(address indexed sender, uint128 liquidity, uint256 amount0, uint256 amount1);
     event ReHypothecatedLiquidityRemoved(address indexed sender, uint128 liquidity, uint256 amount0, uint256 amount1);
 
@@ -200,6 +202,10 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     function getYieldSourceForCurrency(Currency currency) internal view virtual returns (address);
 
     function _depositOnYieldSource(Currency currency, uint256 amount) internal virtual {
+        // In this implementation with ERC4626, native currency is not supported
+        if (currency.isAddressZero()) {
+            revert InvalidCurrency();
+        }
         address yieldSource = getYieldSourceForCurrency(currency);
         IERC20(Currency.unwrap(currency)).approve(yieldSource, amount);
         IERC4626(yieldSource).deposit(amount, address(this));
@@ -264,7 +270,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     }
 
     /**
-     * Set the hooks permissions, specifically `afterAddLiquidity`, `afterRemoveLiquidity` and `afterRemoveLiquidityReturnDelta`.
+     * Set the hooks permissions, specifically `beforeInitialize`, `beforeSwap`, `afterSwap`.
      *
      * @return permissions The permissions for the hook.
      */

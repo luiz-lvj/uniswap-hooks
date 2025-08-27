@@ -90,6 +90,11 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     event ReHypothecatedLiquidityRemoved(address indexed sender, uint128 liquidity, uint256 amount0, uint256 amount1);
 
     /**
+     * @dev Sets the `PoolManager` address.
+     */
+    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
+
+    /**
      * @dev Adds rehypothecated `liquidity` to the pool, retunns the caller's `delta`, and mints ERC20 shares to them.
      *
      * This function calculates the required amounts of both currencies based on the desired liquidity,

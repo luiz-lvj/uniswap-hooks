@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Uniswap Hooks (last updated v0.1.1) (src/general/ReHypothecationHook.sol)
+// OpenZeppelin Uniswap Hooks (last updated v1.2.0) (src/general/ReHypothecationHook.sol)
 
 pragma solidity ^0.8.24;
 
@@ -14,7 +14,6 @@ import {IERC4626} from "openzeppelin/interfaces/IERC4626.sol";
 import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
 
 // External imports
-import {Pool} from "v4-core/src/libraries/Pool.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Position} from "v4-core/src/libraries/Position.sol";
 import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
@@ -24,13 +23,11 @@ import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {TransientStateLibrary} from "v4-core/src/libraries/TransientStateLibrary.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
-import {BalanceDelta, BalanceDeltaLibrary, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
-import {SqrtPriceMath} from "v4-core/src/libraries/SqrtPriceMath.sol";
 
 import {LiquidityAmounts} from "v4-periphery/src/libraries/LiquidityAmounts.sol";
 

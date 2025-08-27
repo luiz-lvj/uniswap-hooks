@@ -13,7 +13,6 @@ contract ReHypothecationMock is ReHypothecationHook {
     address private _yieldSource1;
 
     constructor(IPoolManager poolManager_, address yieldSource0_, address yieldSource1_)
-        ReHypothecationHook()
         BaseHook(poolManager_)
         ERC20("ReHypothecationMock", "RHM")
     {

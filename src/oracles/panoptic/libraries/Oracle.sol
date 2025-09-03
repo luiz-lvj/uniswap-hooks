@@ -178,11 +178,11 @@ library Oracle {
             while (true) {
                 mid = (left + right) / 2;
 
-                beforeOrAt = self[i % cardinality];
+                beforeOrAt = self[mid % cardinality];
 
                 // we've landed on an uninitialized tick, keep searching higher (more recently)
                 if (!beforeOrAt.initialized) {
-                    left = i + 1;
+                    left = mid + 1;
                     continue;
                 }
 

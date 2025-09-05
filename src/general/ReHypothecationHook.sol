@@ -28,7 +28,6 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
 /**
  * @dev A Uniswap V4 hook that enables rehypothecation of liquidity positions.
  *
- *
  * This hook allows users to deposit assets into yield-generating sources (e.g., ERC-4626 vaults)
  * while still making the same capital available as swapping liquidity in Uniswap pools.
  * Assets earn yield in yield sources most of the time, but are temporarily surfaced as pool
@@ -45,6 +44,13 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
  *   performing JIT provisioning during swaps.
  * - After swaps, assets are rebalanced back into yield sources to continue earning yield.
  * - Supports both ERC20 tokens and native ETH (with proper integration).
+ *
+ * NOTE: By default, the hook liquidity position is placed in the entire curve range. Override
+ * the `getHookPositionTickLower` and `getHookPositionTickUpper` functions to customize the position.
+ *
+ * NOTE: By default, both rehypothecated and cannonical liquidity modifications are allowed. In order to
+ * enforce rehypothecated liquidity modifications only, override `beforeAddLiquidity` and `beforeRemoveLiquidity`
+ * to revert.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis.
  * We do not give any warranties and will not be liable for any losses incurred through any use of
@@ -244,14 +250,14 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /**
      * @dev Returns the lower tick boundary for the hook's liquidity position.
      */
-    function getTickLower() public view virtual returns (int24) {
+    function getHookPositionTickLower() public view virtual returns (int24) {
         return TickMath.minUsableTick(_poolKey.tickSpacing);
     }
 
     /**
      * @dev Returns the upper tick boundary for the hook's liquidity position.
      */
-    function getTickUpper() public view virtual returns (int24) {
+    function getHookPositionTickUpper() public view virtual returns (int24) {
         return TickMath.maxUsableTick(_poolKey.tickSpacing);
     }
 
@@ -266,8 +272,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
         return LiquidityAmounts.getAmountsForLiquidity(
             currentSqrtPriceX96,
-            TickMath.getSqrtPriceAtTick(getTickLower()),
-            TickMath.getSqrtPriceAtTick(getTickUpper()),
+            TickMath.getSqrtPriceAtTick(getHookPositionTickLower()),
+            TickMath.getSqrtPriceAtTick(getHookPositionTickUpper()),
             liquidity
         );
     }
@@ -279,8 +285,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
         return LiquidityAmounts.getLiquidityForAmounts(
             currentSqrtPriceX96,
-            TickMath.getSqrtPriceAtTick(getTickLower()),
-            TickMath.getSqrtPriceAtTick(getTickUpper()),
+            TickMath.getSqrtPriceAtTick(getHookPositionTickLower()),
+            TickMath.getSqrtPriceAtTick(getHookPositionTickUpper()),
             amount0,
             amount1
         );
@@ -297,8 +303,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         (delta,) = poolManager.modifyLiquidity(
             _poolKey,
             ModifyLiquidityParams({
-                tickLower: getTickLower(),
-                tickUpper: getTickUpper(),
+                tickLower: getHookPositionTickLower(),
+                tickUpper: getHookPositionTickUpper(),
                 liquidityDelta: liquidityDelta,
                 salt: bytes32(0)
             }),
@@ -310,7 +316,9 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      * @dev Retrieves the current `liquidity` of the hook owned liquidity position in the `key` pool.
      */
     function _getHookPositionLiquidity(PoolKey calldata key) internal virtual returns (uint128 liquidity) {
-        bytes32 positionKey = Position.calculatePositionKey(address(this), getTickLower(), getTickUpper(), bytes32(0));
+        bytes32 positionKey = Position.calculatePositionKey(
+            address(this), getHookPositionTickLower(), getHookPositionTickUpper(), bytes32(0)
+        );
         return poolManager.getPositionLiquidity(key.toId(), positionKey);
     }
 

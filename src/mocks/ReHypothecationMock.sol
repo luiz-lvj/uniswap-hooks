@@ -17,9 +17,10 @@ contract ReHypothecationMock is ReHypothecationHook {
     address private _yieldSource0;
     address private _yieldSource1;
 
-    constructor(IPoolManager poolManager_) ReHypothecationHook(poolManager_) ERC20("ReHypothecationMock", "RHM") {}
-
-    function setYieldSources(address yieldSource0_, address yieldSource1_) external {
+    constructor(IPoolManager poolManager_, address yieldSource0_, address yieldSource1_)
+        ReHypothecationHook(poolManager_)
+        ERC20("ReHypothecationMock", "RHM")
+    {
         _yieldSource0 = yieldSource0_;
         _yieldSource1 = yieldSource1_;
     }
@@ -27,12 +28,8 @@ contract ReHypothecationMock is ReHypothecationHook {
     // overrides for testing
     function getYieldSourceForCurrency(Currency currency) public view override returns (address) {
         PoolKey memory poolKey = getPoolKey();
-        if (currency == poolKey.currency0) {
-            return _yieldSource0;
-        }
-        if (currency == poolKey.currency1) {
-            return _yieldSource1;
-        }
+        if (currency == poolKey.currency0) return _yieldSource0;
+        if (currency == poolKey.currency1) return _yieldSource1;
         revert InvalidCurrency();
     }
 

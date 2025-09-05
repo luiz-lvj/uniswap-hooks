@@ -65,7 +65,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     error AlreadyInitialized();
 
     /// @dev Error thrown when attempting to use the hook before the pool key has been initialized.
-    error PoolKeyNotInitialized();
+    error NotInitialized();
 
     /// @dev Error thrown when the message value doesn't match the expected amount for native ETH deposits.
     error InvalidMsgValue();
@@ -80,14 +80,18 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     error InvalidCurrency();
 
     /**
-     * @dev Emitted when an `sender` adds rehypothecated liquidity to the pool, transferring `amount0` of `currency0` and `amount1` of `currency1` to the hook.
+     * @dev Emitted when an `sender` adds rehypothecated liquidity to the `poolKey` pool, transferring `amount0` of `currency0` and `amount1` of `currency1` to the hook.
      */
-    event ReHypothecatedLiquidityAdded(address indexed sender, uint128 liquidity, uint256 amount0, uint256 amount1);
+    event ReHypothecatedLiquidityAdded(
+        address indexed sender, PoolKey indexed poolKey, uint128 liquidity, uint256 amount0, uint256 amount1
+    );
 
     /**
-     * @dev Emitted when an `sender` removes rehypothecated liquidity from the pool, receiving `amount0` of `currency0` and `amount1` of `currency1` from the hook.
+     * @dev Emitted when an `sender` removes rehypothecated liquidity from the `poolKey` pool, receiving `amount0` of `currency0` and `amount1` of `currency1` from the hook.
      */
-    event ReHypothecatedLiquidityRemoved(address indexed sender, uint128 liquidity, uint256 amount0, uint256 amount1);
+    event ReHypothecatedLiquidityRemoved(
+        address indexed sender, PoolKey indexed poolKey, uint128 liquidity, uint256 amount0, uint256 amount1
+    );
 
     /**
      * @dev Sets the `PoolManager` address.
@@ -95,18 +99,17 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /**
-     * @dev Adds rehypothecated `liquidity` to the pool, retunns the caller's `delta`, and mints ERC20 shares to them.
+     * @dev Adds rehypothecated `liquidity` to the pool, returns the caller's `delta`, and mints ERC20 shares to them.
      *
      * This function calculates the required amounts of both currencies based on the desired liquidity,
      * transfers the assets from the user, deposits them into yield sources, and mints shares
      * representing the user's position.
      *
-     * Note: This function can only be called once the pool is initialized, reverting with `PoolKeyNotInitialized` otherwise.
+     * Note: This function can only be called once the pool is initialized, reverting with `NotInitialized` otherwise.
      * The hook might accept native currency, in which case the function `_depositOnYieldSource` must be implemented to handle it.
      */
     function addReHypothecatedLiquidity(uint128 liquidity) external payable returns (BalanceDelta delta) {
-        if (_poolKey.currency1.isAddressZero()) revert PoolKeyNotInitialized();
-
+        if (_poolKey.currency1.isAddressZero()) revert NotInitialized();
         if (liquidity == 0) revert ZeroLiquidity();
 
         delta = _getDeltaForDepositedShares(liquidity);
@@ -154,7 +157,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      * consider implementing a separate function or using standard ERC20 transfer mechanisms.
      */
     function removeReHypothecatedLiquidity(address owner) external returns (BalanceDelta delta) {
-        if (_poolKey.currency1.isAddressZero()) revert PoolKeyNotInitialized();
+        if (_poolKey.currency1.isAddressZero()) revert NotInitialized();
 
         uint256 sharesAmount = balanceOf(owner);
         if (sharesAmount == 0) revert ZeroLiquidity();

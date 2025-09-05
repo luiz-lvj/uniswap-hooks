@@ -3,11 +3,11 @@
 
 pragma solidity ^0.8.24;
 
-import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {TickMath} from "v4-core/src/libraries/TickMath.sol";
-import {SqrtPriceMath} from "v4-core/src/libraries/SqrtPriceMath.sol";
-
-import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
+// External imports
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {BalanceDelta, toBalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
+import {SqrtPriceMath} from "@uniswap/v4-core/src/libraries/SqrtPriceMath.sol";
 
 /**
  * @dev Library with helper functions for liquidity math.

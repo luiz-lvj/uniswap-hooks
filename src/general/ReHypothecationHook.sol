@@ -137,7 +137,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
 
         _mint(msg.sender, liquidity);
 
-        emit ReHypothecatedLiquidityAdded(msg.sender, liquidity, amount0, amount1);
+        emit ReHypothecatedLiquidityAdded(msg.sender, _poolKey, liquidity, amount0, amount1);
     }
 
     /**
@@ -175,7 +175,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         _poolKey.currency0.transfer(owner, amount0);
         _poolKey.currency1.transfer(owner, amount1);
 
-        emit ReHypothecatedLiquidityRemoved(owner, uint128(sharesAmount), amount0, amount1);
+        emit ReHypothecatedLiquidityRemoved(owner, _poolKey, uint128(sharesAmount), amount0, amount1);
     }
 
     /**

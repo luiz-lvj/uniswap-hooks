@@ -185,7 +185,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
             abi.encode(manager, address(yieldSource0), address(yieldSource1)),
             address(newHook)
         );
-        vm.expectRevert(ReHypothecationHook.PoolKeyNotInitialized.selector);
+        vm.expectRevert(ReHypothecationHook.NotInitialized.selector);
         newHook.addReHypothecatedLiquidity(1e15);
     }
 
@@ -209,7 +209,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
             abi.encode(manager, address(yieldSource0), address(yieldSource1)),
             address(newHook)
         );
-        vm.expectRevert(ReHypothecationHook.PoolKeyNotInitialized.selector);
+        vm.expectRevert(ReHypothecationHook.NotInitialized.selector);
         newHook.removeReHypothecatedLiquidity(address(this));
     }
 

@@ -4,9 +4,6 @@
 pragma solidity ^0.8.24;
 
 // External imports
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
@@ -60,7 +57,6 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     using TransientStateLibrary for IPoolManager;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
-    using SafeERC20 for IERC20;
     using SafeCast for *;
 
     /// @dev The pool key for the hook. Note that the hook supports only one pool key.
@@ -83,9 +79,6 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
 
     /// @dev Error thrown when the calculated amounts for liquidity modification operations are invalid.
     error InvalidAmounts();
-
-    /// @dev Error thrown when attempting to use an unsupported currency.
-    error UnsupportedCurrency();
 
     /**
      * @dev Emitted when a `sender` adds rehypothecated `liquidity` to the `poolKey` pool,
@@ -338,60 +331,43 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     }
 
     /**
-     * @dev Returns the yield source address for a given currency.
+     * @dev Returns the `yieldSource` address for a given `currency`.
      *
-     * Note: Should be overridden and adapted for other types of yield sources apart from ERC-4626,
-     *  such as custom DeFi protocol interfaces, or handling native currency.
+     * Note: Must be implemented and adapted for the desired type of yield sources, such as
+     *  ERC-4626 Vaults, or any custom DeFi protocol interface, optionally handling native currency.
      */
-    function getYieldSourceForCurrency(Currency currency) public view virtual returns (address);
+    function getCurrencyYieldSource(Currency currency) public view virtual returns (address yieldSource);
 
     /**
      * @dev Deposits a specified `amount` of `currency` into its corresponding yield source.
      *
-     * Note: Should be overridden and adapted for other types of yield sources apart from ERC-4626,
-     *  such as custom DeFi protocol interfaces, or handling native currency.
+     * This function must take the `amount` of `currency` from the sender and deposit it into the yield source.
+     *
+     * Note: Must be implemented and adapted for the desired type of yield sources, such as
+     *  ERC-4626 Vaults, or any custom DeFi protocol interface, optionally handling native currency.
      */
-    function _depositToYieldSource(Currency currency, uint256 amount) internal virtual {
-        // In this ERC4626 implementation, native currency is not supported.
-        if (currency.isAddressZero()) revert UnsupportedCurrency();
-        IERC20 token = IERC20(Currency.unwrap(currency));
-
-        IERC4626 yieldSource = IERC4626(getYieldSourceForCurrency(currency));
-        if (address(yieldSource) == address(0)) revert UnsupportedCurrency();
-
-        token.safeTransferFrom(msg.sender, address(this), amount);
-        token.approve(address(yieldSource), amount);
-        yieldSource.deposit(amount, address(this));
-    }
+    function _depositToYieldSource(Currency currency, uint256 amount) internal virtual;
 
     /**
      * @dev Withdraws a specified `amount` of `currency` from its corresponding yield source.
      *
-     * This function withdraws assets from the yield source and returns them to the hook
-     * for further processing (e.g., transferring to users or adding to pool liquidity).
+     * This function must withdraw the `amount` of `currency` from the yield source and return them
+     * to the hook for further processing (e.g., transferring to users or adding to pool liquidity).
      *
-     * Note: Should be overridden and adapted for other types of yield sources apart from ERC-4626,
-     *  such as custom DeFi protocol interfaces, or handling native currency.
+     * Note: Must be implemented and adapted for the desired type of yield sources, such as
+     *  ERC-4626 Vaults, or any custom DeFi protocol interface, optionally handling native currency.
      */
-    function _withdrawFromYieldSource(Currency currency, uint256 amount) internal virtual {
-        IERC4626 yieldSource = IERC4626(getYieldSourceForCurrency(currency));
-        if (address(yieldSource) == address(0)) revert UnsupportedCurrency();
-
-        yieldSource.withdraw(amount, address(this), address(this));
-        currency.transfer(msg.sender, amount);
-    }
+    function _withdrawFromYieldSource(Currency currency, uint256 amount) internal virtual;
 
     /**
      * @dev Gets the `amount` of `currency` deposited in its corresponding yield source.
      *
-     * Note: Should be overridden and adapted for other types of yield sources apart from ERC-4626,
-     *  such as custom DeFi protocol interfaces, or handling native currency.
+     * This function must return the `amount` of `currency` deposited in its corresponding yield source.
+     *
+     * Note: Must be implemented and adapted for the desired type of yield sources, such as
+     *  ERC-4626 Vaults, or any custom DeFi protocol interface, optionally handling native currency.
      */
-    function _getAmountInYieldSource(Currency currency) internal virtual returns (uint256 amount) {
-        IERC4626 yieldSource = IERC4626(getYieldSourceForCurrency(currency));
-        uint256 yieldSourceShares = yieldSource.balanceOf(address(this));
-        return yieldSource.convertToAssets(yieldSourceShares);
-    }
+    function _getAmountInYieldSource(Currency currency) internal virtual returns (uint256 amount);
 
     /**
      * Set the hooks permissions, specifically `beforeInitialize`, `beforeSwap`, `afterSwap`.

@@ -33,15 +33,23 @@ import {LiquidityAmounts} from "v4-periphery/src/libraries/LiquidityAmounts.sol"
 /**
  * @dev A Uniswap V4 hook that enables rehypothecation of liquidity positions.
  *
- * This hook allows users to deposit assets into yield-generating protocols (like ERC4626 vaults)
- * while maintaining the ability to provide liquidity to Uniswap pools. The hook acts as an
- * intermediary that manages the relationship between yield sources and pool liquidity.
+ *
+ * This hook allows users to deposit assets into yield-generating sources (e.g., ERC-4626 vaults)
+ * while still making the same capital available as swapping liquidity in Uniswap pools.
+ * Assets earn yield in yield sources most of the time, but are temporarily surfaced as pool
+ * liquidity through Just-in-Time (JIT) provisioning during swaps.
+ *
+ * Conceptually, the hook acts as an intermediary that manages:
+ * - the user-facing ERC20 share token (representing rehypothecated positions), and
+ * - the underlying relationship between yield sources and pool liquidity.
  *
  * Key features:
- * - Users can add rehypothecated liquidity by depositing assets into yield sources
- * - The hook dynamically manages pool liquidity based on available yield source assets
- * - Supports both ERC20 tokens and native ETH (with proper implementation)
- * - Implements ERC20 for representing user shares of the rehypothecated position
+ * - Users can deposit assets into yield sources via the hook and receive ERC20 shares
+ *   that represent their rehypothecated liquidity position.
+ * - The hook dynamically manages pool liquidity based on available yield source assets,
+ *   performing JIT provisioning during swaps.
+ * - After swaps, assets are rebalanced back into yield sources to continue earning yield.
+ * - Supports both ERC20 tokens and native ETH (with proper integration).
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
  * not give any warranties and will not be liable for any losses incurred through any use of this code
@@ -55,29 +63,29 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     using SafeERC20 for IERC20;
     using SafeCast for *;
 
-    /// @dev The pool key for the hook. Note that the hook only allows one key.
+    /// @dev The pool key for the hook. Note that the hook supports only one pool key.
     PoolKey private _poolKey;
 
     /// @dev Error thrown when attempting to add or remove zero liquidity.
     error ZeroLiquidity();
 
-    /// @dev Error thrown when trying to initialize a pool key that has already been set.
+    /// @dev Error thrown when trying to initialize a pool that has already been initialized.
     error AlreadyInitialized();
 
-    /// @dev Error thrown when attempting to use the hook before the pool key has been initialized.
+    /// @dev Error thrown when attempting to interact with a pool that has not been initialized.
     error NotInitialized();
 
     /// @dev Error thrown when the message value doesn't match the expected amount for native ETH deposits.
     error InvalidMsgValue();
 
-    /// @dev Error thrown when a refund of excess ETH fails.
+    /// @dev Error thrown when a excess ETH refund fails.
     error RefundFailed();
 
-    /// @dev Error thrown when the calculated amounts for liquidity operations are invalid.
+    /// @dev Error thrown when the calculated amounts for liquidity modification operations result invalid.
     error InvalidAmounts();
 
-    /// @dev Error thrown when attempting to use an unsupported currency type.
-    error InvalidCurrency();
+    /// @dev Error thrown when attempting to use an unsupported currency.
+    error UnsupportedCurrency();
 
     /**
      * @dev Emitted when an `sender` adds rehypothecated liquidity to the `poolKey` pool, transferring `amount0` of `currency0` and `amount1` of `currency1` to the hook.
@@ -318,7 +326,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     function _depositOnYieldSource(Currency currency, uint256 amount) internal virtual {
         // In this implementation with ERC4626, native currency is not supported
         if (currency.isAddressZero()) {
-            revert InvalidCurrency();
+            revert UnsupportedCurrency();
         }
         address yieldSource = getYieldSourceForCurrency(currency);
         IERC20(Currency.unwrap(currency)).approve(yieldSource, amount);

@@ -30,7 +30,7 @@ contract ReHypothecationMock is ReHypothecationHook {
         PoolKey memory poolKey = getPoolKey();
         if (currency == poolKey.currency0) return _yieldSource0;
         if (currency == poolKey.currency1) return _yieldSource1;
-        revert InvalidCurrency();
+        revert UnsupportedCurrency();
     }
 
     // Exclude from coverage report

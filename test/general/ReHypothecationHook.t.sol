@@ -228,7 +228,7 @@ contract ReHypothecationHookTest is HookTest, BalanceDeltaAssertions {
 
         IERC20(Currency.unwrap(currency1)).approve(address(newHook), type(uint256).max);
 
-        vm.expectRevert(ReHypothecationHook.InvalidCurrency.selector);
+        vm.expectRevert(ReHypothecationHook.UnsupportedCurrency.selector);
         newHook.addReHypothecatedLiquidity{value: 1e15}(1e15);
     }
 

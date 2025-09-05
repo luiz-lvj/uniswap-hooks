@@ -8,27 +8,27 @@ import {BaseHook} from "../base/BaseHook.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
 import {LiquidityMath} from "../utils/LiquidityMath.sol";
 
-import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
-import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import {IERC4626} from "openzeppelin/interfaces/IERC4626.sol";
-import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // External imports
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {Position} from "v4-core/src/libraries/Position.sol";
-import {SafeCast} from "openzeppelin/utils/math/SafeCast.sol";
-import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
-import {FullMath} from "v4-core/src/libraries/FullMath.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {TransientStateLibrary} from "v4-core/src/libraries/TransientStateLibrary.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
-import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
-import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {TickMath} from "v4-core/src/libraries/TickMath.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {Position} from "@uniswap/v4-core/src/libraries/Position.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
+import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {TransientStateLibrary} from "@uniswap/v4-core/src/libraries/TransientStateLibrary.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {BalanceDelta, toBalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {SwapParams, ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 
-import {LiquidityAmounts} from "v4-periphery/src/libraries/LiquidityAmounts.sol";
+import {LiquidityAmounts} from "@uniswap/v4-periphery/src/libraries/LiquidityAmounts.sol";
 
 /**
  * @dev A Uniswap V4 hook that enables rehypothecation of liquidity positions.

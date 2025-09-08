@@ -71,7 +71,7 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
     }
 
     /// @inheritdoc ReHypothecationHook
-    function _getAmountInYieldSource(Currency currency) internal virtual override returns (uint256 amount) {
+    function _getAmountInYieldSource(Currency currency) internal view virtual override returns (uint256 amount) {
         IERC4626 yieldSource = IERC4626(getCurrencyYieldSource(currency));
         uint256 yieldSourceShares = yieldSource.balanceOf(address(this));
         return yieldSource.convertToAssets(yieldSourceShares);

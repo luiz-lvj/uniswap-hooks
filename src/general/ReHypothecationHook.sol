@@ -5,6 +5,7 @@ pragma solidity ^0.8.24;
 
 // External imports
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Position} from "@uniswap/v4-core/src/libraries/Position.sol";
@@ -58,6 +59,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
     using SafeCast for *;
+    using Math for uint256;
 
     /// @dev The pool key for the hook. Note that the hook supports only one pool key.
     PoolKey private _poolKey;
@@ -136,12 +138,13 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
         if (liquidity == 0) revert ZeroLiquidity();
 
+        // Calculate the amounts of both currencies needed to achieve the target liquidity
         (uint256 amount0, uint256 amount1) = _getAmountsForLiquidity(liquidity);
 
         _depositToYieldSource(_poolKey.currency0, amount0);
         _depositToYieldSource(_poolKey.currency1, amount1);
 
-        _mint(msg.sender, _liquidityToShares(liquidity));
+        _mint(msg.sender, previewDeposit(liquidity));
 
         emit ReHypothecatedLiquidityAdded(msg.sender, _poolKey, liquidity, amount0, amount1);
 
@@ -165,9 +168,9 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
         if (liquidity == 0) revert ZeroLiquidity();
 
-        (uint256 amount0, uint256 amount1) = _getAmountsForLiquidity(liquidity);
+        _burn(msg.sender, previewWithdraw(liquidity));
 
-        _burn(msg.sender, _liquidityToShares(liquidity));
+        (uint256 amount0, uint256 amount1) = _getAmountsForLiquidity(liquidity);
 
         _withdrawFromYieldSource(_poolKey.currency0, amount0);
         _withdrawFromYieldSource(_poolKey.currency1, amount1);
@@ -175,6 +178,51 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         emit ReHypothecatedLiquidityRemoved(msg.sender, _poolKey, liquidity, amount0, amount1);
 
         return toBalanceDelta(int256(amount0).toInt128(), int256(amount1).toInt128());
+    }
+
+    /**
+     * @dev Returns the amount of shares that would be minted for a given amount of liquidity.
+     */
+    function previewDeposit(uint256 liquidity) public view virtual returns (uint256) {
+        return _convertToShares(liquidity, Math.Rounding.Floor);
+    }
+
+    /**
+     * @dev Returns the amount of shares that would be burned for a given amount of liquidity.
+     */
+    function previewWithdraw(uint256 liquidity) public view virtual returns (uint256) {
+        return _convertToShares(liquidity, Math.Rounding.Ceil);
+    }
+
+    /**
+     * @dev Internal conversion function (from liquidity to shares) with support for rounding direction.
+     */
+    function _convertToShares(uint256 liquidity, Math.Rounding rounding) internal view virtual returns (uint256) {
+        return liquidity.mulDiv(totalSupply() + 10 ** _decimalsOffset(), _getTotalLiquidity() + 1, rounding);
+    }
+
+    function _decimalsOffset() internal view virtual returns (uint8) {
+        return 0;
+    }
+
+    /**
+     * @dev Returns the total hook-owned liquidity units from the amounts currently deposited in the yield sources.
+     */
+    function _getTotalLiquidity() internal view virtual returns (uint256) {
+        uint256 totalAmount0 = _getAmountInYieldSource(_poolKey.currency0);
+        uint256 totalAmount1 = _getAmountInYieldSource(_poolKey.currency1);
+        return _getLiquidityForAmounts(totalAmount0, totalAmount1);
+    }
+
+    /**
+     * @dev Retrieves the current `liquidity` of the hook owned liquidity position in the `_poolKey` pool.
+     *
+     * WARNING: Given that we are doing just-in-time liquidity provisioning, the liquidity will only be inside the
+     * hook's position between `beforeSwap` and `afterSwap`. It will be zero in any other point in the hook lifecycle.
+     */
+    function _getHookPositionLiquidity() internal view virtual returns (uint128 liquidity) {
+        bytes32 positionKey = Position.calculatePositionKey(address(this), getTickLower(), getTickUpper(), bytes32(0));
+        return poolManager.getPositionLiquidity(_poolKey.toId(), positionKey);
     }
 
     /**
@@ -189,16 +237,15 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      */
     function _beforeSwap(
         address, /* sender */
-        PoolKey calldata key,
+        PoolKey calldata, /* key */
         SwapParams calldata, /* params */
         bytes calldata /* hookData */
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
-        uint256 amount0 = _getAmountInYieldSource(key.currency0);
-        uint256 amount1 = _getAmountInYieldSource(key.currency1);
-        uint128 liquidity = _getLiquidityForAmounts(amount0, amount1);
+        // Get the total hook-owned liquidity from the amounts currently deposited in the yield sources
+        uint256 totalLiquidity = _getTotalLiquidity();
 
         // Add liquidity to the pool (in a Just-in-Time provision of liquidity)
-        if (liquidity > 0) _modifyLiquidity(liquidity.toInt256());
+        if (totalLiquidity > 0) _modifyLiquidity(totalLiquidity.toInt256());
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
@@ -217,7 +264,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         bytes calldata /* hookData */
     ) internal virtual override returns (bytes4, int128) {
         // Remove all of the hook owned liquidity from the pool
-        uint128 liquidity = _getHookLiquidity(key);
+        uint128 liquidity = _getHookPositionLiquidity();
         if (liquidity > 0) {
             _modifyLiquidity(-liquidity.toInt256());
 
@@ -227,16 +274,6 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         }
 
         return (this.afterSwap.selector, 0);
-    }
-
-    /**
-     * @dev Converts liquidity to shares.
-     *
-     * Utilizes a default ratio of 1:1 between liquidity and shares, can be overridden
-     * in order to implement a different calculation.
-     */
-    function _liquidityToShares(uint128 liquidity) internal view virtual returns (uint256) {
-        return liquidity;
     }
 
     /**
@@ -256,11 +293,15 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /**
      * @dev Calculates the amounts required for adding a specific amount of liquidity.
      *
-     * This function uses the current pool state and desired liquidity to determine
-     * the exact amounts of both currencies needed to achieve the target liquidity.
-     *
+     * This function uses the current price and tick boundaries to determine the exact amounts
+     * of both currencies needed to achieve the target liquidity.
      */
-    function _getAmountsForLiquidity(uint128 liquidity) internal virtual returns (uint256 amount0, uint256 amount1) {
+    function _getAmountsForLiquidity(uint128 liquidity)
+        internal
+        view
+        virtual
+        returns (uint256 amount0, uint256 amount1)
+    {
         (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
         return LiquidityAmounts.getAmountsForLiquidity(
             currentSqrtPriceX96,
@@ -272,8 +313,16 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
 
     /**
      * @dev Calculates the amount of liquidity required for a given amount of tokens.
+     *
+     * This function uses the current price and tick boundaries to determine the exact amount of liquidity
+     * required to achieve the target amounts of both currencies.
      */
-    function _getLiquidityForAmounts(uint256 amount0, uint256 amount1) internal virtual returns (uint128 liquidity) {
+    function _getLiquidityForAmounts(uint256 amount0, uint256 amount1)
+        internal
+        view
+        virtual
+        returns (uint128 liquidity)
+    {
         (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
         return LiquidityAmounts.getLiquidityForAmounts(
             currentSqrtPriceX96,
@@ -302,14 +351,6 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
             }),
             ""
         );
-    }
-
-    /**
-     * @dev Retrieves the current `liquidity` of the hook owned liquidity position in the `key` pool.
-     */
-    function _getHookLiquidity(PoolKey calldata key) internal virtual returns (uint128 liquidity) {
-        bytes32 positionKey = Position.calculatePositionKey(address(this), getTickLower(), getTickUpper(), bytes32(0));
-        return poolManager.getPositionLiquidity(key.toId(), positionKey);
     }
 
     /**
@@ -365,7 +406,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      * Note: Must be implemented and adapted for the desired type of yield sources, such as
      *  ERC-4626 Vaults, or any custom DeFi protocol interface, optionally handling native currency.
      */
-    function _getAmountInYieldSource(Currency currency) internal virtual returns (uint256 amount);
+    function _getAmountInYieldSource(Currency currency) internal view virtual returns (uint256 amount);
 
     /**
      * Set the hooks permissions, specifically `beforeInitialize`, `beforeSwap`, `afterSwap`.

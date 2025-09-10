@@ -64,6 +64,10 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /// @dev The pool key for the hook. Note that the hook supports only one pool key.
     PoolKey private _poolKey;
 
+    /// @dev The total amount of accrued yields in the hook.
+    uint256 private _accruedYieldsCurrency0;
+    uint256 private _accruedYieldsCurrency1;
+
     /// @dev Error thrown when attempting to add or remove zero liquidity.
     error ZeroLiquidity();
 
@@ -138,7 +142,10 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
         if (liquidity == 0) revert ZeroLiquidity();
 
-        // Calculate the amounts of both currencies needed to achieve the target liquidity
+        _rebalanceYieldSources();
+
+        // Calculate the amounts of both currencies needed to achieve the target liquidity,
+        // adjusted by the current pool price
         (uint256 amount0, uint256 amount1) = _getAmountsForLiquidity(liquidity);
 
         _depositToYieldSource(_poolKey.currency0, amount0);
@@ -167,6 +174,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     function removeReHypothecatedLiquidity(uint128 liquidity) public virtual returns (BalanceDelta delta) {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
         if (liquidity == 0) revert ZeroLiquidity();
+
+        _rebalanceYieldSources();
 
         _burn(msg.sender, previewWithdraw(liquidity));
 
@@ -198,7 +207,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      * @dev Internal conversion function (from liquidity to shares) with support for rounding direction.
      */
     function _convertToShares(uint256 liquidity, Math.Rounding rounding) internal view virtual returns (uint256) {
-        return liquidity.mulDiv(totalSupply() + 10 ** _decimalsOffset(), _getTotalLiquidity() + 1, rounding);
+        return liquidity.mulDiv(totalSupply() + 10 ** _decimalsOffset(), _getLiquidityFromYieldSources() + 1, rounding);
     }
 
     function _decimalsOffset() internal view virtual returns (uint8) {
@@ -206,9 +215,51 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     }
 
     /**
-     * @dev Returns the total hook-owned liquidity units from the amounts currently deposited in the yield sources.
+     * @dev Rebalances the hook-owned balances deposited in yield sources to maintain accurate share accounting.
+     *
+     * This function calculates the maximum usable liquidity from current yield source balances and withdraws
+     * any excess tokens that cannot be used for liquidity provision. The withdrawn excess is stored as
+     * `accruedYields` and excluded from share calculations.
+     *
+     * WARNING: This rebalancing is critical for accurate share accounting. Since `_getLiquidityFromYieldSources()`
+     * is used as the source of truth for share minting/burning calculations, any unusable tokens must be
+     * withdrawn from yield sources to prevent distorting the shares-to-liquidity ratio.
      */
-    function _getTotalLiquidity() internal view virtual returns (uint256) {
+    function _rebalanceYieldSources() internal virtual {
+        uint256 totalAmount0 = _getAmountInYieldSource(_poolKey.currency0);
+        uint256 totalAmount1 = _getAmountInYieldSource(_poolKey.currency1);
+        uint128 usableLiquidity = _getLiquidityForAmounts(totalAmount0, totalAmount1);
+        (uint256 usableAmount0, uint256 usableAmount1) = _getAmountsForLiquidity(usableLiquidity);
+
+        uint256 unusableAmount0 = totalAmount0 - usableAmount0;
+        uint256 unusableAmount1 = totalAmount1 - usableAmount1;
+
+        if (unusableAmount0 > 0) {
+            _withdrawFromYieldSource(_poolKey.currency0, unusableAmount0);
+            _accruedYieldsCurrency0 += unusableAmount0;
+        }
+        if (unusableAmount1 > 0) {
+            _withdrawFromYieldSource(_poolKey.currency1, unusableAmount1);
+            _accruedYieldsCurrency1 += unusableAmount1;
+        }
+    }
+
+    /**
+     * @dev Returns the usable hook-owned liquidity from the amounts currently deposited in the yield sources.
+     *
+     * The liquidity returned is the maximum that can be provided using the available `amount0` and `amount1`,
+     * constrained by the current pool price and the hook's position range. Depending on where the current price falls
+     * relative to the position range, some tokens may remain unutilized.
+     *
+     * NOTE: If the current price is outside the hook's position range, only one of the two token types will be
+     * usable for liquidity provision, leaving the other type completely unutilized until the price moves back into range.
+     *
+     * i.e, if the current pool price is 1:1 and the hook's position range includes this price, but the hook owns
+     * 1000:1500 amount0 and amount1 in the yield sources, the function calculates the liquidity that can be provided
+     * with each token amount separately, then takes the minimum. The constraining token determines how much liquidity
+     * can actually be provided, leaving some of the other token unutilized.
+     */
+    function _getLiquidityFromYieldSources() internal view virtual returns (uint256) {
         uint256 totalAmount0 = _getAmountInYieldSource(_poolKey.currency0);
         uint256 totalAmount1 = _getAmountInYieldSource(_poolKey.currency1);
         return _getLiquidityForAmounts(totalAmount0, totalAmount1);
@@ -241,11 +292,13 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         SwapParams calldata, /* params */
         bytes calldata /* hookData */
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
+        _rebalanceYieldSources();
+
         // Get the total hook-owned liquidity from the amounts currently deposited in the yield sources
-        uint256 totalLiquidity = _getTotalLiquidity();
+        uint256 usableLiquidity = _getLiquidityFromYieldSources();
 
         // Add liquidity to the pool (in a Just-in-Time provision of liquidity)
-        if (totalLiquidity > 0) _modifyLiquidity(totalLiquidity.toInt256());
+        if (usableLiquidity > 0) _modifyLiquidity(usableLiquidity.toInt256());
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }

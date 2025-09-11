@@ -4,7 +4,7 @@
 pragma solidity ^0.8.24;
 
 // External imports
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {AbstractVault as LiquidityVault} from "../utils/AbstractVault.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
@@ -22,14 +22,15 @@ import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol
 // Internal imports
 import {BaseHook} from "../base/BaseHook.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @dev A Uniswap V4 hook that enables rehypothecation of liquidity positions.
  *
  * This hook allows users to deposit assets into yield-generating sources (e.g., ERC-4626 vaults)
  * while still making the same capital available as swapping liquidity in Uniswap pools.
- * Assets earn yield in yield sources most of the time, but are temporarily surfaced as pool
- * liquidity through Just-in-Time (JIT) provisioning during swaps.
+ * Assets earn yield in yield sources most of the time, and are temporarily surfaced as pool
+ * liquidity through Just-in-Time (JIT) provisioning during incoming swaps.
  *
  * Conceptually, the hook acts as an intermediary that manages:
  * - the user-facing ERC20 share token (representing rehypothecated positions), and
@@ -40,7 +41,7 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
  *   that represent their rehypothecated liquidity position.
  * - The hook dynamically manages pool liquidity based on available yield source assets,
  *   performing JIT provisioning during swaps.
- * - After swaps, assets are rebalanced back into yield sources to continue earning yield.
+ * - After swaps, assets are deposited back into yield sources to continue earning yield.
  * - Supports both ERC20 tokens and native ETH (with proper integration).
  *
  * NOTE: By default, the hook liquidity position is placed in the entire curve range. Override
@@ -54,7 +55,7 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
  * this code base.
  * _Available since v1.1.0_
  */
-abstract contract ReHypothecationHook is BaseHook, ERC20 {
+abstract contract ReHypothecationHook is BaseHook, LiquidityVault {
     using TransientStateLibrary for IPoolManager;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
@@ -115,6 +116,13 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     }
 
     /**
+     *  @inheritdoc LiquidityVault
+     */
+    function totalAssets() public view virtual override returns (uint256) {
+        return _getMaximumLiquidityFromYieldSources();
+    }
+
+    /**
      * @dev Initialize the hook's `poolKey`. The stored key by the hook is unique and
      * should not be modified so that it can safely be used across the hook's lifecycle.
      */
@@ -125,33 +133,39 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     }
 
     /**
-     * @dev Adds rehypothecated `liquidity` to the pool, returns the caller's `delta`, and mints ERC20 shares to them.
+     * @dev Adds rehypothecated liquidity to the pool and mints shares to the caller.
      *
-     * This function calculates the required amounts of both currencies based on the desired liquidity, transfers the assets
-     * from the user, deposits them into yield sources, and mints shares to the user representing the user's position.
+     * Converts the target `liquidity` into required token amounts, transfers assets from the user,
+     * deposits them into yield sources for rehypothecation, and mints vault shares representing
+     * the user's share of the hook position.
      *
-     * Returns a balance `delta` representing the assets deposited into the hook.
+     * The liquidity is not directly added to the Uniswap pool but held in yield sources, allowing
+     * the hook to deploy it dynamically during swaps while generating yield when idle.
+     *
+     * returns a balance `delta` representing the assets deposited into the hook.
      *
      * Requirements:
      * - Pool must be initialized
-     *
-     * Note: The hook might accept native currency, in which case the function `_depositToYieldSource` must be
-     * overridden to handle it.
+     * - Sender must have sufficient token balances
+     * - Sender must have approved the hook to spend the required tokens
      */
     function addReHypothecatedLiquidity(uint128 liquidity) public payable virtual returns (BalanceDelta delta) {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
         if (liquidity == 0) revert ZeroLiquidity();
 
-        _rebalanceYieldSources();
+        uint256 maxAssets = maxDeposit(msg.sender);
+        if (liquidity > maxAssets) {
+            revert AbstractVaultExceededMaxDeposit(msg.sender, liquidity, maxAssets);
+        }
+        uint256 shares = previewDeposit(liquidity);
 
-        // Calculate the amounts of both currencies needed to achieve the target liquidity,
-        // adjusted by the current pool price
+        // Calculate the amounts required to achieve the target liquidity based on the current pool price
         (uint256 amount0, uint256 amount1) = _getAmountsForLiquidity(liquidity);
 
         _depositToYieldSource(_poolKey.currency0, amount0);
         _depositToYieldSource(_poolKey.currency1, amount1);
 
-        _mint(msg.sender, previewDeposit(liquidity));
+        _mint(msg.sender, shares);
 
         emit ReHypothecatedLiquidityAdded(msg.sender, _poolKey, liquidity, amount0, amount1);
 
@@ -159,26 +173,35 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     }
 
     /**
-     * @dev Removes rehypothecated `liquidity` for a given sender and burns their shares.
+     * @dev Removes rehypothecated liquidity from yield sources and burns caller's shares.
      *
-     * This function calculates the required amounts of both currencies based on the desired liquidity
-     * to be removed, withdraws the assets from the yield sources, and burns the shares from the user.
+     * Converts the target `liquidity` into required token amounts, withdraws assets from
+     * yield sources, burns vault shares from the caller, and transfers the underlying
+     * tokens back to them.
      *
-     * Returns a balance `delta` representing the assets withdrawn from the hook.
+     * The liquidity is withdrawn from yield sources where it was generating yield,
+     * allowing users to exit their rehypothecated position and reclaim their assets.
+     *
+     * @param liquidity The amount of liquidity units to remove
+     * @return delta The balance changes representing assets withdrawn from the hook
      *
      * Requirements:
      * - Pool must be initialized
-     * - Sender must have enough shares to remove the desired liquidity
-     *
+     * - Sender must have sufficient shares for the desired liquidity withdrawal
      */
     function removeReHypothecatedLiquidity(uint128 liquidity) public virtual returns (BalanceDelta delta) {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
         if (liquidity == 0) revert ZeroLiquidity();
 
-        _rebalanceYieldSources();
+        uint256 maxAssets = maxWithdraw(msg.sender);
+        if (liquidity > maxAssets) {
+            revert AbstractVaultExceededMaxWithdraw(msg.sender, liquidity, maxAssets);
+        }
+        uint256 shares = previewWithdraw(liquidity);
 
-        _burn(msg.sender, previewWithdraw(liquidity));
+        _burn(msg.sender, shares);
 
+        // Calculate the amounts to be withdrawn that equals the target liquidity based on the current pool price
         (uint256 amount0, uint256 amount1) = _getAmountsForLiquidity(liquidity);
 
         _withdrawFromYieldSource(_poolKey.currency0, amount0);
@@ -189,77 +212,58 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         return toBalanceDelta(int256(amount0).toInt128(), int256(amount1).toInt128());
     }
 
-    /**
-     * @dev Returns the amount of shares that would be minted for a given amount of liquidity.
-     */
-    function previewDeposit(uint256 liquidity) public view virtual returns (uint256) {
-        return _convertToShares(liquidity, Math.Rounding.Floor);
-    }
-
-    /**
-     * @dev Returns the amount of shares that would be burned for a given amount of liquidity.
-     */
-    function previewWithdraw(uint256 liquidity) public view virtual returns (uint256) {
-        return _convertToShares(liquidity, Math.Rounding.Ceil);
-    }
-
-    /**
-     * @dev Internal conversion function (from liquidity to shares) with support for rounding direction.
-     */
-    function _convertToShares(uint256 liquidity, Math.Rounding rounding) internal view virtual returns (uint256) {
-        return liquidity.mulDiv(totalSupply() + 10 ** _decimalsOffset(), _getLiquidityFromYieldSources() + 1, rounding);
-    }
-
-    function _decimalsOffset() internal view virtual returns (uint8) {
-        return 0;
+    /* 
+    * @dev Collects accrued yields from the yield sources.
+    * Rebalances the amounts in yield sources to the pool price,
+    * taking any excedent amounts as accrued yields.
+    */
+    function collectAccruedYields() public virtual {
+        _collectAccruedYields();
     }
 
     /**
      * @dev Rebalances the hook-owned balances deposited in yield sources to maintain accurate share accounting.
      *
-     * This function calculates the maximum usable liquidity from current yield source balances and withdraws
-     * any excess tokens that cannot be used for liquidity provision. The withdrawn excess is stored as
-     * `accruedYields` and excluded from share calculations.
+     * Calculates the maximum usable liquidity units from the hook-owned balances, constrained by the current
+     * pool price and the hook's position range. Any excess tokens that cannot contribute to liquidity provision
+     * are withdrawn as accrued yields to be claimed by liquidity providers.
      *
      * WARNING: This rebalancing is critical for accurate share accounting. Since `_getLiquidityFromYieldSources()`
-     * is used as the source of truth for share minting/burning calculations, any unusable tokens must be
-     * withdrawn from yield sources to prevent distorting the shares-to-liquidity ratio.
+     * liquidity units are used for computing shares, any unusable tokens must be withdrawn from yield sources
+     * to prevent distorting the shares-to-liquidity ratio.
      */
-    function _rebalanceYieldSources() internal virtual {
+    function _collectAccruedYields() internal virtual {
         uint256 totalAmount0 = _getAmountInYieldSource(_poolKey.currency0);
         uint256 totalAmount1 = _getAmountInYieldSource(_poolKey.currency1);
         uint128 usableLiquidity = _getLiquidityForAmounts(totalAmount0, totalAmount1);
         (uint256 usableAmount0, uint256 usableAmount1) = _getAmountsForLiquidity(usableLiquidity);
 
-        uint256 unusableAmount0 = totalAmount0 - usableAmount0;
-        uint256 unusableAmount1 = totalAmount1 - usableAmount1;
+        uint256 excessAmount0 = totalAmount0 - usableAmount0;
+        uint256 excessAmount1 = totalAmount1 - usableAmount1;
 
-        if (unusableAmount0 > 0) {
-            _withdrawFromYieldSource(_poolKey.currency0, unusableAmount0);
-            _accruedYieldsCurrency0 += unusableAmount0;
+        if (excessAmount0 > 0) {
+            console.log("withdrawing excess amount0", excessAmount0);
+            _withdrawFromYieldSource(_poolKey.currency0, excessAmount0);
+            _accruedYieldsCurrency0 += excessAmount0;
         }
-        if (unusableAmount1 > 0) {
-            _withdrawFromYieldSource(_poolKey.currency1, unusableAmount1);
-            _accruedYieldsCurrency1 += unusableAmount1;
+        if (excessAmount1 > 0) {
+            console.log("withdrawing excess amount1", excessAmount1);
+            _withdrawFromYieldSource(_poolKey.currency1, excessAmount1);
+            _accruedYieldsCurrency1 += excessAmount1;
         }
     }
 
     /**
      * @dev Returns the usable hook-owned liquidity from the amounts currently deposited in the yield sources.
      *
-     * The liquidity returned is the maximum that can be provided using the available `amount0` and `amount1`,
-     * constrained by the current pool price and the hook's position range. Depending on where the current price falls
-     * relative to the position range, some tokens may remain unutilized.
+     * This function automatically rebalances yield sources to ensure accurate liquidity calculations, then
+     * computes the maximum liquidity that can be provided using the current pool price and position range.
+     * Any excess tokens that cannot contribute to liquidity provision are moved to accrued yields.
      *
-     * NOTE: If the current price is outside the hook's position range, only one of the two token types will be
-     * usable for liquidity provision, leaving the other type completely unutilized until the price moves back into range.
-     *
-     * i.e, if the current pool price is 1:1 and the hook's position range includes this price, but the hook owns
-     * 1000:1500 amount0 and amount1 in the yield sources, the function calculates the liquidity that can be provided
-     * with each token amount separately, then takes the minimum. The constraining token determines how much liquidity
-     * can actually be provided, leaving some of the other token unutilized.
+     * NOTE: The returned liquidity represents only the usable portion after rebalancing. Excess tokens
+     * continue earning yield as accrued yields but don't contribute to the liquidity calculation.
      */
-    function _getLiquidityFromYieldSources() internal view virtual returns (uint256) {
+    function _getMaximumLiquidityFromYieldSources() internal view virtual returns (uint256) {
         uint256 totalAmount0 = _getAmountInYieldSource(_poolKey.currency0);
         uint256 totalAmount1 = _getAmountInYieldSource(_poolKey.currency1);
         return _getLiquidityForAmounts(totalAmount0, totalAmount1);
@@ -292,10 +296,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         SwapParams calldata, /* params */
         bytes calldata /* hookData */
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
-        _rebalanceYieldSources();
-
         // Get the total hook-owned liquidity from the amounts currently deposited in the yield sources
-        uint256 usableLiquidity = _getLiquidityFromYieldSources();
+        uint256 usableLiquidity = _getMaximumLiquidityFromYieldSources();
 
         // Add liquidity to the pool (in a Just-in-Time provision of liquidity)
         if (usableLiquidity > 0) _modifyLiquidity(usableLiquidity.toInt256());

@@ -1,0 +1,172 @@
+Compiling 1 files with Solc 0.8.26
+Solc 0.8.26 finished in 3.83s
+Compiler run successful!
+
+Ran 1 test for test/general/ReHypothecationHookERC4626.t.sol:ReHypothecationHookERC4626Test
+[FAIL: previewed burn != total shares before: 1000000000000001 != 1000000000000000] test_removeRehypothecatedLiquidity_singleLP() (gas: 450681)
+Logs:
+  Usable liquidity before adding liquidity: 0
+  Shares before removal: 1000000000000000
+  Total supply: 1000000000000000
+  YieldSource0 assets before: 999999999999999
+  YieldSource1 assets before: 999999999999999
+  Usable liquidity before: 999999999999999
+  Multiplication first: 1000000000000000000000000000000
+  Division second: 1000000000000001
+  Manual preview burn: 1000000000000001
+  Complete manual preview burn: 1000000000000001
+  Previewed burn: 1000000000000001
+
+Traces:
+  [450681] ReHypothecationHookERC4626Test::test_removeRehypothecatedLiquidity_singleLP()
+    ├─ [51682] 0x00000000000000000000000000000000000020C0::getUsableLiquidityFromYieldSources() [staticcall]
+    │   ├─ [2549] ERC4626YieldSourceMock::balanceOf(0x00000000000000000000000000000000000020C0) [staticcall]
+    │   │   └─ ← [Return] 0
+    │   ├─ [8798] ERC4626YieldSourceMock::convertToAssets(0) [staticcall]
+    │   │   ├─ [2539] currency0::balanceOf(ERC4626YieldSourceMock: [0x2a07706473244BC757E10F2a9E86fB532828afe3]) [staticcall]
+    │   │   │   └─ ← [Return] 0
+    │   │   └─ ← [Return] 0
+    │   ├─ [2549] ERC4626YieldSourceMock::balanceOf(0x00000000000000000000000000000000000020C0) [staticcall]
+    │   │   └─ ← [Return] 0
+    │   ├─ [8798] ERC4626YieldSourceMock::convertToAssets(0) [staticcall]
+    │   │   ├─ [2539] currency1::balanceOf(ERC4626YieldSourceMock: [0x3D7Ebc40AF7092E3F1C81F2e996cbA5Cae2090d7]) [staticcall]
+    │   │   │   └─ ← [Return] 0
+    │   │   └─ ← [Return] 0
+    │   ├─ [2415] PoolManager::extsload(0xc8f230ae1352d6b0ad922b11db0b8dc97d3aa0715308178931a4fc4eac275878) [staticcall]
+    │   │   └─ ← [Return] 0x0000000003e80000000000000000000000000001000000000000000000000000
+    │   └─ ← [Return] 0
+    ├─ [0] console::log("Usable liquidity before adding liquidity:", 0) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [332613] 0x00000000000000000000000000000000000020C0::addReHypothecatedLiquidity(1000000000000000 [1e15])
+    │   ├─ [415] PoolManager::extsload(0xc8f230ae1352d6b0ad922b11db0b8dc97d3aa0715308178931a4fc4eac275878) [staticcall]
+    │   │   └─ ← [Return] 0x0000000003e80000000000000000000000000001000000000000000000000000
+    │   ├─ [549] ERC4626YieldSourceMock::balanceOf(0x00000000000000000000000000000000000020C0) [staticcall]
+    │   │   └─ ← [Return] 0
+    │   ├─ [2298] ERC4626YieldSourceMock::convertToAssets(0) [staticcall]
+    │   │   ├─ [539] currency0::balanceOf(ERC4626YieldSourceMock: [0x2a07706473244BC757E10F2a9E86fB532828afe3]) [staticcall]
+    │   │   │   └─ ← [Return] 0
+    │   │   └─ ← [Return] 0
+    │   ├─ [549] ERC4626YieldSourceMock::balanceOf(0x00000000000000000000000000000000000020C0) [staticcall]
+    │   │   └─ ← [Return] 0
+    │   ├─ [2298] ERC4626YieldSourceMock::convertToAssets(0) [staticcall]
+    │   │   ├─ [539] currency1::balanceOf(ERC4626YieldSourceMock: [0x3D7Ebc40AF7092E3F1C81F2e996cbA5Cae2090d7]) [staticcall]
+    │   │   │   └─ ← [Return] 0
+    │   │   └─ ← [Return] 0
+    │   ├─ [415] PoolManager::extsload(0xc8f230ae1352d6b0ad922b11db0b8dc97d3aa0715308178931a4fc4eac275878) [staticcall]
+    │   │   └─ ← [Return] 0x0000000003e80000000000000000000000000001000000000000000000000000
+    │   ├─ [32077] currency0::transferFrom(ReHypothecationHookERC4626Test: [0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496], 0x00000000000000000000000000000000000020C0, 999999999999999 [9.999e14])
+    │   │   ├─ emit Transfer(from: ReHypothecationHookERC4626Test: [0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496], to: 0x00000000000000000000000000000000000020C0, value: 999999999999999 [9.999e14])
+    │   │   └─ ← [Return] true
+    │   ├─ [24543] currency0::approve(ERC4626YieldSourceMock: [0x2a07706473244BC757E10F2a9E86fB532828afe3], 999999999999999 [9.999e14])
+    │   │   ├─ emit Approval(owner: 0x00000000000000000000000000000000000020C0, spender: ERC4626YieldSourceMock: [0x2a07706473244BC757E10F2a9E86fB532828afe3], value: 999999999999999 [9.999e14])
+    │   │   └─ ← [Return] true
+    │   ├─ [71320] ERC4626YieldSourceMock::deposit(999999999999999 [9.999e14], 0x00000000000000000000000000000000000020C0)
+    │   │   ├─ [539] currency0::balanceOf(ERC4626YieldSourceMock: [0x2a07706473244BC757E10F2a9E86fB532828afe3]) [staticcall]
+    │   │   │   └─ ← [Return] 0
+    │   │   ├─ [23612] currency0::transferFrom(0x00000000000000000000000000000000000020C0, ERC4626YieldSourceMock: [0x2a07706473244BC757E10F2a9E86fB532828afe3], 999999999999999 [9.999e14])
+    │   │   │   ├─ emit Transfer(from: 0x00000000000000000000000000000000000020C0, to: ERC4626YieldSourceMock: [0x2a07706473244BC757E10F2a9E86fB532828afe3], value: 999999999999999 [9.999e14])
+    │   │   │   └─ ← [Return] true
+    │   │   ├─ emit Transfer(from: 0x0000000000000000000000000000000000000000, to: 0x00000000000000000000000000000000000020C0, value: 999999999999999 [9.999e14])
+    │   │   ├─ emit Deposit(sender: 0x00000000000000000000000000000000000020C0, owner: 0x00000000000000000000000000000000000020C0, assets: 999999999999999 [9.999e14], shares: 999999999999999 [9.999e14])
+    │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   ├─ [32077] currency1::transferFrom(ReHypothecationHookERC4626Test: [0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496], 0x00000000000000000000000000000000000020C0, 999999999999999 [9.999e14])
+    │   │   ├─ emit Transfer(from: ReHypothecationHookERC4626Test: [0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496], to: 0x00000000000000000000000000000000000020C0, value: 999999999999999 [9.999e14])
+    │   │   └─ ← [Return] true
+    │   ├─ [24543] currency1::approve(ERC4626YieldSourceMock: [0x3D7Ebc40AF7092E3F1C81F2e996cbA5Cae2090d7], 999999999999999 [9.999e14])
+    │   │   ├─ emit Approval(owner: 0x00000000000000000000000000000000000020C0, spender: ERC4626YieldSourceMock: [0x3D7Ebc40AF7092E3F1C81F2e996cbA5Cae2090d7], value: 999999999999999 [9.999e14])
+    │   │   └─ ← [Return] true
+    │   ├─ [71320] ERC4626YieldSourceMock::deposit(999999999999999 [9.999e14], 0x00000000000000000000000000000000000020C0)
+    │   │   ├─ [539] currency1::balanceOf(ERC4626YieldSourceMock: [0x3D7Ebc40AF7092E3F1C81F2e996cbA5Cae2090d7]) [staticcall]
+    │   │   │   └─ ← [Return] 0
+    │   │   ├─ [23612] currency1::transferFrom(0x00000000000000000000000000000000000020C0, ERC4626YieldSourceMock: [0x3D7Ebc40AF7092E3F1C81F2e996cbA5Cae2090d7], 999999999999999 [9.999e14])
+    │   │   │   ├─ emit Transfer(from: 0x00000000000000000000000000000000000020C0, to: ERC4626YieldSourceMock: [0x3D7Ebc40AF7092E3F1C81F2e996cbA5Cae2090d7], value: 999999999999999 [9.999e14])
+    │   │   │   └─ ← [Return] true
+    │   │   ├─ emit Transfer(from: 0x0000000000000000000000000000000000000000, to: 0x00000000000000000000000000000000000020C0, value: 999999999999999 [9.999e14])
+    │   │   ├─ emit Deposit(sender: 0x00000000000000000000000000000000000020C0, owner: 0x00000000000000000000000000000000000020C0, assets: 999999999999999 [9.999e14], shares: 999999999999999 [9.999e14])
+    │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   ├─ emit Transfer(from: 0x0000000000000000000000000000000000000000, to: ReHypothecationHookERC4626Test: [0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496], value: 1000000000000000 [1e15])
+    │   ├─ emit ReHypothecatedLiquidityAdded(sender: ReHypothecationHookERC4626Test: [0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496], poolKey: 0x38f90333c30f34b90afa212ffc69474c23715eb469b7d46b0a837399f72231a5, liquidity: 1000000000000000 [1e15], amount0: 999999999999999 [9.999e14], amount1: 999999999999999 [9.999e14])
+    │   └─ ← [Return] 340282366920938123181007686493304748082392568231788543 [3.402e53]
+    ├─ [348] 0x00000000000000000000000000000000000020C0::totalSupply() [staticcall]
+    │   └─ ← [Return] 1000000000000000 [1e15]
+    ├─ [588] 0x00000000000000000000000000000000000020C0::balanceOf(ReHypothecationHookERC4626Test: [0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496]) [staticcall]
+    │   └─ ← [Return] 1000000000000000 [1e15]
+    ├─ [0] console::log("Shares before removal:", 1000000000000000 [1e15]) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [348] 0x00000000000000000000000000000000000020C0::totalSupply() [staticcall]
+    │   └─ ← [Return] 1000000000000000 [1e15]
+    ├─ [0] console::log("Total supply:", 1000000000000000 [1e15]) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [549] ERC4626YieldSourceMock::balanceOf(0x00000000000000000000000000000000000020C0) [staticcall]
+    │   └─ ← [Return] 999999999999999 [9.999e14]
+    ├─ [2298] ERC4626YieldSourceMock::convertToAssets(999999999999999 [9.999e14]) [staticcall]
+    │   ├─ [539] currency0::balanceOf(ERC4626YieldSourceMock: [0x2a07706473244BC757E10F2a9E86fB532828afe3]) [staticcall]
+    │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   └─ ← [Return] 999999999999999 [9.999e14]
+    ├─ [0] console::log("YieldSource0 assets before:", 999999999999999 [9.999e14]) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [549] ERC4626YieldSourceMock::balanceOf(0x00000000000000000000000000000000000020C0) [staticcall]
+    │   └─ ← [Return] 999999999999999 [9.999e14]
+    ├─ [2298] ERC4626YieldSourceMock::convertToAssets(999999999999999 [9.999e14]) [staticcall]
+    │   ├─ [539] currency1::balanceOf(ERC4626YieldSourceMock: [0x3D7Ebc40AF7092E3F1C81F2e996cbA5Cae2090d7]) [staticcall]
+    │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   └─ ← [Return] 999999999999999 [9.999e14]
+    ├─ [0] console::log("YieldSource1 assets before:", 999999999999999 [9.999e14]) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [15182] 0x00000000000000000000000000000000000020C0::getUsableLiquidityFromYieldSources() [staticcall]
+    │   ├─ [549] ERC4626YieldSourceMock::balanceOf(0x00000000000000000000000000000000000020C0) [staticcall]
+    │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   ├─ [2298] ERC4626YieldSourceMock::convertToAssets(999999999999999 [9.999e14]) [staticcall]
+    │   │   ├─ [539] currency0::balanceOf(ERC4626YieldSourceMock: [0x2a07706473244BC757E10F2a9E86fB532828afe3]) [staticcall]
+    │   │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   ├─ [549] ERC4626YieldSourceMock::balanceOf(0x00000000000000000000000000000000000020C0) [staticcall]
+    │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   ├─ [2298] ERC4626YieldSourceMock::convertToAssets(999999999999999 [9.999e14]) [staticcall]
+    │   │   ├─ [539] currency1::balanceOf(ERC4626YieldSourceMock: [0x3D7Ebc40AF7092E3F1C81F2e996cbA5Cae2090d7]) [staticcall]
+    │   │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   ├─ [415] PoolManager::extsload(0xc8f230ae1352d6b0ad922b11db0b8dc97d3aa0715308178931a4fc4eac275878) [staticcall]
+    │   │   └─ ← [Return] 0x0000000003e80000000000000000000000000001000000000000000000000000
+    │   └─ ← [Return] 999999999999999 [9.999e14]
+    ├─ [0] console::log("Usable liquidity before:", 999999999999999 [9.999e14]) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [0] console::log("Multiplication first:", 1000000000000000000000000000000 [1e30]) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [0] console::log("Division second:", 1000000000000001 [1e15]) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [0] console::log("Manual preview burn:", 1000000000000001 [1e15]) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [0] console::log("Complete manual preview burn:", 1000000000000001 [1e15]) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [16338] 0x00000000000000000000000000000000000020C0::previewWithdraw(1000000000000000 [1e15]) [staticcall]
+    │   ├─ [549] ERC4626YieldSourceMock::balanceOf(0x00000000000000000000000000000000000020C0) [staticcall]
+    │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   ├─ [2298] ERC4626YieldSourceMock::convertToAssets(999999999999999 [9.999e14]) [staticcall]
+    │   │   ├─ [539] currency0::balanceOf(ERC4626YieldSourceMock: [0x2a07706473244BC757E10F2a9E86fB532828afe3]) [staticcall]
+    │   │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   ├─ [549] ERC4626YieldSourceMock::balanceOf(0x00000000000000000000000000000000000020C0) [staticcall]
+    │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   ├─ [2298] ERC4626YieldSourceMock::convertToAssets(999999999999999 [9.999e14]) [staticcall]
+    │   │   ├─ [539] currency1::balanceOf(ERC4626YieldSourceMock: [0x3D7Ebc40AF7092E3F1C81F2e996cbA5Cae2090d7]) [staticcall]
+    │   │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   │   └─ ← [Return] 999999999999999 [9.999e14]
+    │   ├─ [415] PoolManager::extsload(0xc8f230ae1352d6b0ad922b11db0b8dc97d3aa0715308178931a4fc4eac275878) [staticcall]
+    │   │   └─ ← [Return] 0x0000000003e80000000000000000000000000001000000000000000000000000
+    │   └─ ← [Return] 1000000000000001 [1e15]
+    ├─ [0] console::log("Previewed burn:", 1000000000000001 [1e15]) [staticcall]
+    │   └─ ← [Stop]
+    ├─ [0] VM::assertEq(1000000000000001 [1e15], 1000000000000000 [1e15], "previewed burn != total shares before") [staticcall]
+    │   └─ ← [Revert] previewed burn != total shares before: 1000000000000001 != 1000000000000000
+    └─ ← [Revert] previewed burn != total shares before: 1000000000000001 != 1000000000000000
+
+Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 4.26ms (1.25ms CPU time)
+
+Ran 1 test suite in 188.57ms (4.26ms CPU time): 0 tests passed, 1 failed, 0 skipped (1 total tests)
+
+Failing tests:
+Encountered 1 failing test in test/general/ReHypothecationHookERC4626.t.sol:ReHypothecationHookERC4626Test
+[FAIL: previewed burn != total shares before: 1000000000000001 != 1000000000000000] test_removeRehypothecatedLiquidity_singleLP() (gas: 450681)
+
+Encountered a total of 1 failing tests, 0 tests succeeded

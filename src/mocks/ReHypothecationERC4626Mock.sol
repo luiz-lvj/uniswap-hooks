@@ -16,7 +16,7 @@ import {ReHypothecationHook} from "../general/ReHypothecationHook.sol";
 
 /// @title ERC4626Mock
 /// @notice A mock implementation of the ERC-4626 yield source.
-contract ERC4626Mock is ERC4626 {
+contract ERC4626YieldSourceMock is ERC4626 {
     constructor(IERC20 token, string memory name, string memory symbol) ERC4626(token) ERC20(name, symbol) {}
 }
 
@@ -75,6 +75,20 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
         IERC4626 yieldSource = IERC4626(getCurrencyYieldSource(currency));
         uint256 yieldSourceShares = yieldSource.balanceOf(address(this));
         return yieldSource.convertToAssets(yieldSourceShares);
+    }
+
+    // Helpers for testing
+
+    function getLiquidityForAmounts(uint256 amount0, uint256 amount1) public view returns (uint128 liquidity) {
+        return _getLiquidityForAmounts(amount0, amount1);
+    }
+
+    function getAmountsForLiquidity(uint128 liquidity) public view returns (uint256 amount0, uint256 amount1) {
+        return _getAmountsForLiquidity(liquidity);
+    }
+
+    function getMaximumLiquidityFromYieldSources() public view returns (uint256) {
+        return _getMaximumLiquidityFromYieldSources();
     }
 
     // Exclude from coverage report

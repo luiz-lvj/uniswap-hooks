@@ -14,6 +14,9 @@ import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 // Internal imports
 import {ReHypothecationHook} from "../general/ReHypothecationHook.sol";
 
+// Testing
+import {console} from "forge-std/console.sol";
+
 /// @title ERC4626Mock
 /// @notice A mock implementation of the ERC-4626 yield source.
 contract ERC4626YieldSourceMock is ERC4626 {
@@ -51,14 +54,12 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
     function _depositToYieldSource(Currency currency, uint256 amount) internal virtual override {
         // In this ERC4626 implementation, native currency is not supported.
         if (currency.isAddressZero()) revert UnsupportedCurrency();
-        IERC20 token = IERC20(Currency.unwrap(currency));
 
-        IERC4626 yieldSource = IERC4626(getCurrencyYieldSource(currency));
-        if (address(yieldSource) == address(0)) revert UnsupportedCurrency();
+        address yieldSource = getCurrencyYieldSource(currency);
+        if (yieldSource == address(0)) revert UnsupportedCurrency();
 
-        token.safeTransferFrom(msg.sender, address(this), amount);
-        token.approve(address(yieldSource), amount);
-        yieldSource.deposit(amount, address(this));
+        IERC20(Currency.unwrap(currency)).approve(address(yieldSource), amount);
+        IERC4626(yieldSource).deposit(amount, address(this));
     }
 
     /// @inheritdoc ReHypothecationHook
@@ -67,7 +68,6 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
         if (address(yieldSource) == address(0)) revert UnsupportedCurrency();
 
         yieldSource.withdraw(amount, address(this), address(this));
-        currency.transfer(msg.sender, amount);
     }
 
     /// @inheritdoc ReHypothecationHook
@@ -89,6 +89,10 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
 
     function getMaximumLiquidityFromYieldSources() public view returns (uint256) {
         return _getMaximumLiquidityFromYieldSources();
+    }
+
+    function getAmountInYieldSource(Currency currency) public view returns (uint256) {
+        return _getAmountInYieldSource(currency);
     }
 
     // Exclude from coverage report

@@ -4,8 +4,10 @@
 pragma solidity ^0.8.24;
 
 // External imports
-import {AbstractVault as LiquidityVault} from "../utils/AbstractVault.sol";
+import {AbstractAssetVault} from "../utils/AbstractAssetVault.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Position} from "@uniswap/v4-core/src/libraries/Position.sol";
@@ -55,12 +57,13 @@ import {console} from "forge-std/console.sol";
  * this code base.
  * _Available since v1.1.0_
  */
-abstract contract ReHypothecationHook is BaseHook, LiquidityVault {
+abstract contract ReHypothecationHook is BaseHook, AbstractAssetVault {
     using TransientStateLibrary for IPoolManager;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
     using SafeCast for *;
     using Math for uint256;
+    using SafeERC20 for IERC20;
 
     /// @dev The pool key for the hook. Note that the hook supports only one pool key.
     PoolKey private _poolKey;
@@ -116,7 +119,7 @@ abstract contract ReHypothecationHook is BaseHook, LiquidityVault {
     }
 
     /**
-     *  @inheritdoc LiquidityVault
+     *  @inheritdoc AbstractAssetVault
      */
     function totalAssets() public view virtual override returns (uint256) {
         return _getMaximumLiquidityFromYieldSources();
@@ -155,12 +158,15 @@ abstract contract ReHypothecationHook is BaseHook, LiquidityVault {
 
         uint256 maxAssets = maxDeposit(msg.sender);
         if (liquidity > maxAssets) {
-            revert AbstractVaultExceededMaxDeposit(msg.sender, liquidity, maxAssets);
+            revert AbstractAssetVaultExceededMaxDeposit(msg.sender, liquidity, maxAssets);
         }
         uint256 shares = previewDeposit(liquidity);
 
         // Calculate the amounts required to achieve the target liquidity based on the current pool price
         (uint256 amount0, uint256 amount1) = _getAmountsForLiquidity(liquidity);
+
+        _transferFromSenderToHook(_poolKey.currency0, amount0, msg.sender);
+        _transferFromSenderToHook(_poolKey.currency1, amount1, msg.sender);
 
         _depositToYieldSource(_poolKey.currency0, amount0);
         _depositToYieldSource(_poolKey.currency1, amount1);
@@ -169,7 +175,7 @@ abstract contract ReHypothecationHook is BaseHook, LiquidityVault {
 
         emit ReHypothecatedLiquidityAdded(msg.sender, _poolKey, liquidity, amount0, amount1);
 
-        return toBalanceDelta(int256(amount0).toInt128(), int256(amount1).toInt128());
+        return toBalanceDelta(-int256(amount0).toInt128(), -int256(amount1).toInt128());
     }
 
     /**
@@ -195,7 +201,7 @@ abstract contract ReHypothecationHook is BaseHook, LiquidityVault {
 
         uint256 maxAssets = maxWithdraw(msg.sender);
         if (liquidity > maxAssets) {
-            revert AbstractVaultExceededMaxWithdraw(msg.sender, liquidity, maxAssets);
+            revert AbstractAssetVaultExceededMaxWithdraw(msg.sender, liquidity, maxAssets);
         }
         uint256 shares = previewWithdraw(liquidity);
 
@@ -206,6 +212,9 @@ abstract contract ReHypothecationHook is BaseHook, LiquidityVault {
 
         _withdrawFromYieldSource(_poolKey.currency0, amount0);
         _withdrawFromYieldSource(_poolKey.currency1, amount1);
+
+        _transferFromHookToSender(_poolKey.currency0, amount0, msg.sender);
+        _transferFromHookToSender(_poolKey.currency1, amount1, msg.sender);
 
         emit ReHypothecatedLiquidityRemoved(msg.sender, _poolKey, liquidity, amount0, amount1);
 
@@ -293,14 +302,19 @@ abstract contract ReHypothecationHook is BaseHook, LiquidityVault {
     function _beforeSwap(
         address, /* sender */
         PoolKey calldata, /* key */
-        SwapParams calldata, /* params */
+        SwapParams calldata params, /* params */
         bytes calldata /* hookData */
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
         // Get the total hook-owned liquidity from the amounts currently deposited in the yield sources
-        uint256 usableLiquidity = _getMaximumLiquidityFromYieldSources();
+        uint256 liquidity = _getMaximumLiquidityFromYieldSources();
+
+        console.log("params.zeroForOne", params.zeroForOne);
+        console.log("params.amountSpecified", params.amountSpecified);
+        console.log("params.sqrtPriceLimitX96", params.sqrtPriceLimitX96);
+        console.log("liquidity from yield sources", liquidity);
 
         // Add liquidity to the pool (in a Just-in-Time provision of liquidity)
-        if (usableLiquidity > 0) _modifyLiquidity(usableLiquidity.toInt256());
+        if (liquidity > 0) _modifyLiquidity(liquidity.toInt256());
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
@@ -324,8 +338,11 @@ abstract contract ReHypothecationHook is BaseHook, LiquidityVault {
             _modifyLiquidity(-liquidity.toInt256());
 
             // Take or settle any pending deltas with the PoolManager
+            console.log("resolving hook delta for currency0");
             _resolveHookDelta(key.currency0);
+            console.log("resolving hook delta for currency1");
             _resolveHookDelta(key.currency1);
+            console.log("after swap completed");
         }
 
         return (this.afterSwap.selector, 0);
@@ -413,15 +430,36 @@ abstract contract ReHypothecationHook is BaseHook, LiquidityVault {
      * resolving the Flash Accounting requirements before locking the poolManager again.
      */
     function _resolveHookDelta(Currency currency) internal virtual {
+        console.log("resolving hook delta for", Currency.unwrap(currency));
         int256 currencyDelta = poolManager.currencyDelta(address(this), currency);
         if (currencyDelta > 0) {
             currency.take(poolManager, address(this), currencyDelta.toUint256(), false);
             _depositToYieldSource(currency, currencyDelta.toUint256());
+            console.log("deposited currencyDelta to yield source", currencyDelta.toUint256());
         }
         if (currencyDelta < 0) {
             _withdrawFromYieldSource(currency, (-currencyDelta).toUint256());
             currency.settle(poolManager, address(this), (-currencyDelta).toUint256(), false);
+            console.log("withdrawn currencyDelta from yield source", (-currencyDelta).toUint256());
         }
+    }
+
+    /// @dev Transfers the `amount` of `currency` from the `sender` to the hook.
+    function _transferFromSenderToHook(Currency currency, uint256 amount, address sender) internal virtual {
+        if (currency.isAddressZero()) {
+            if (msg.value < amount) revert InvalidMsgValue();
+            uint256 refund = msg.value - amount;
+            if (refund > 0) {
+                (bool success,) = msg.sender.call{value: refund}("");
+                if (!success) revert RefundFailed();
+            }
+        } else {
+            IERC20(Currency.unwrap(currency)).safeTransferFrom(sender, address(this), amount);
+        }
+    }
+
+    function _transferFromHookToSender(Currency currency, uint256 amount, address sender) internal virtual {
+        currency.transfer(sender, amount);
     }
 
     /**

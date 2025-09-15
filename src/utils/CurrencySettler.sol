@@ -8,7 +8,7 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import {console} from "forge-std/console.sol";
 /**
  * @dev Library used to interact with the `PoolManager` to settle any open deltas.
  * To settle a positive delta (a credit to the user), a user may take or mint.
@@ -18,6 +18,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  *
  * NOTE: Deltas are synced before any ERC-20 transfers in {settle} function.
  */
+
 library CurrencySettler {
     using SafeERC20 for IERC20;
 
@@ -65,6 +66,11 @@ library CurrencySettler {
         // Early return when amount is 0 given that some tokens may revert in this case
         if (amount == 0) return;
 
+        console.log("CurrencySettler - take");
+        console.log("currency", Currency.unwrap(currency));
+        console.log("recipient", recipient);
+        console.log("amount", amount);
+        console.log("claims", claims);
         claims ? poolManager.mint(recipient, currency.toId(), amount) : poolManager.take(currency, recipient, amount);
     }
 }

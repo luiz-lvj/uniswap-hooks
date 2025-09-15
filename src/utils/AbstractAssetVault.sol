@@ -5,7 +5,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
- * @title AbstractVault
+ * @title AbstractAssetVault
  * @dev ERC-4626-inspired minimal vault for abstract assets that don't have an address of their own,
  * such as Uniswap V3/V4 liquidity units, staking derivatives, or computed values.
  *
@@ -47,28 +47,28 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
  * this code base.
  * _Available since v1.1.0_
  */
-abstract contract AbstractVault is ERC20 {
+abstract contract AbstractAssetVault is ERC20 {
     using Math for uint256;
 
     /**
      * @dev Attempted to deposit more assets than the max amount for `receiver`.
      */
-    error AbstractVaultExceededMaxDeposit(address receiver, uint256 assets, uint256 max);
+    error AbstractAssetVaultExceededMaxDeposit(address receiver, uint256 assets, uint256 max);
 
     /**
      * @dev Attempted to mint more shares than the max amount for `receiver`.
      */
-    error AbstractVaultExceededMaxMint(address receiver, uint256 shares, uint256 max);
+    error AbstractAssetVaultExceededMaxMint(address receiver, uint256 shares, uint256 max);
 
     /**
      * @dev Attempted to withdraw more assets than the max amount for `receiver`.
      */
-    error AbstractVaultExceededMaxWithdraw(address owner, uint256 assets, uint256 max);
+    error AbstractAssetVaultExceededMaxWithdraw(address owner, uint256 assets, uint256 max);
 
     /**
      * @dev Attempted to redeem more shares than the max amount for `receiver`.
      */
-    error AbstractVaultExceededMaxRedeem(address owner, uint256 shares, uint256 max);
+    error AbstractAssetVaultExceededMaxRedeem(address owner, uint256 shares, uint256 max);
 
     /**
      * @dev Returns the current total of the abstract asset.

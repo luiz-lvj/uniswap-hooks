@@ -156,6 +156,8 @@ abstract contract ReHypothecationHook is BaseHook, AbstractAssetVault {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
         if (liquidity == 0) revert ZeroLiquidity();
 
+        _collectAccruedYields();
+
         uint256 maxAssets = maxDeposit(msg.sender);
         if (liquidity > maxAssets) {
             revert AbstractAssetVaultExceededMaxDeposit(msg.sender, liquidity, maxAssets);
@@ -199,6 +201,8 @@ abstract contract ReHypothecationHook is BaseHook, AbstractAssetVault {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
         if (liquidity == 0) revert ZeroLiquidity();
 
+        _collectAccruedYields();
+
         uint256 maxAssets = maxWithdraw(msg.sender);
         if (liquidity > maxAssets) {
             revert AbstractAssetVaultExceededMaxWithdraw(msg.sender, liquidity, maxAssets);
@@ -219,15 +223,6 @@ abstract contract ReHypothecationHook is BaseHook, AbstractAssetVault {
         emit ReHypothecatedLiquidityRemoved(msg.sender, _poolKey, liquidity, amount0, amount1);
 
         return toBalanceDelta(int256(amount0).toInt128(), int256(amount1).toInt128());
-    }
-
-    /* 
-    * @dev Collects accrued yields from the yield sources.
-    * Rebalances the amounts in yield sources to the pool price,
-    * taking any excedent amounts as accrued yields.
-    */
-    function collectAccruedYields() public virtual {
-        _collectAccruedYields();
     }
 
     /**

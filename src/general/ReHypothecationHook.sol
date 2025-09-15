@@ -24,7 +24,6 @@ import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol
 // Internal imports
 import {BaseHook} from "../base/BaseHook.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
-import {console} from "forge-std/console.sol";
 
 /**
  * @dev A Uniswap V4 hook that enables rehypothecation of liquidity positions.
@@ -67,10 +66,6 @@ abstract contract ReHypothecationHook is BaseHook, AbstractAssetVault {
 
     /// @dev The pool key for the hook. Note that the hook supports only one pool key.
     PoolKey private _poolKey;
-
-    /// @dev The total amount of accrued yields in the hook.
-    uint256 private _accruedYieldsCurrency0;
-    uint256 private _accruedYieldsCurrency1;
 
     /// @dev Error thrown when attempting to add or remove zero liquidity.
     error ZeroLiquidity();
@@ -156,8 +151,6 @@ abstract contract ReHypothecationHook is BaseHook, AbstractAssetVault {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
         if (liquidity == 0) revert ZeroLiquidity();
 
-        _collectAccruedYields();
-
         uint256 maxAssets = maxDeposit(msg.sender);
         if (liquidity > maxAssets) {
             revert AbstractAssetVaultExceededMaxDeposit(msg.sender, liquidity, maxAssets);
@@ -201,60 +194,55 @@ abstract contract ReHypothecationHook is BaseHook, AbstractAssetVault {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
         if (liquidity == 0) revert ZeroLiquidity();
 
-        _collectAccruedYields();
-
         uint256 maxAssets = maxWithdraw(msg.sender);
         if (liquidity > maxAssets) {
             revert AbstractAssetVaultExceededMaxWithdraw(msg.sender, liquidity, maxAssets);
         }
         uint256 shares = previewWithdraw(liquidity);
 
-        _burn(msg.sender, shares);
-
         // Calculate the amounts to be withdrawn that equals the target liquidity based on the current pool price
         (uint256 amount0, uint256 amount1) = _getAmountsForLiquidity(liquidity);
 
-        _withdrawFromYieldSource(_poolKey.currency0, amount0);
-        _withdrawFromYieldSource(_poolKey.currency1, amount1);
+        // Calculate the accrued yields for the shares to be withdrawn
+        (uint256 accruedYields0, uint256 accruedYields1) = _getAccruedYieldsForShares(shares);
 
-        _transferFromHookToSender(_poolKey.currency0, amount0, msg.sender);
-        _transferFromHookToSender(_poolKey.currency1, amount1, msg.sender);
+        _burn(msg.sender, shares);
+
+        _withdrawFromYieldSource(_poolKey.currency0, amount0 + accruedYields0);
+        _withdrawFromYieldSource(_poolKey.currency1, amount1 + accruedYields1);
+
+        _transferFromHookToSender(_poolKey.currency0, amount0 + accruedYields0, msg.sender);
+        _transferFromHookToSender(_poolKey.currency1, amount1 + accruedYields1, msg.sender);
 
         emit ReHypothecatedLiquidityRemoved(msg.sender, _poolKey, liquidity, amount0, amount1);
 
-        return toBalanceDelta(int256(amount0).toInt128(), int256(amount1).toInt128());
+        return toBalanceDelta(int256(amount0 + accruedYields0).toInt128(), int256(amount1 + accruedYields1).toInt128());
     }
 
     /**
-     * @dev Rebalances the hook-owned balances deposited in yield sources to maintain accurate share accounting.
-     *
-     * Calculates the maximum usable liquidity units from the hook-owned balances, constrained by the current
-     * pool price and the hook's position range. Any excess tokens that cannot contribute to liquidity provision
-     * are withdrawn as accrued yields to be claimed by liquidity providers.
-     *
-     * WARNING: This rebalancing is critical for accurate share accounting. Since `_getLiquidityFromYieldSources()`
-     * liquidity units are used for computing shares, any unusable tokens must be withdrawn from yield sources
-     * to prevent distorting the shares-to-liquidity ratio.
+     * @dev Accrued yields are hook-owned tokens deposited in the yield sources that have exceeded
+     * the ratio determined by the current pool price, therefore becoming unusable as liquidity for
+     * swaps, but still earning from the yield sources.
      */
-    function _collectAccruedYields() internal virtual {
+    function _getAccruedYields() internal view virtual returns (uint256 accruedYields0, uint256 accruedYields1) {
         uint256 totalAmount0 = _getAmountInYieldSource(_poolKey.currency0);
         uint256 totalAmount1 = _getAmountInYieldSource(_poolKey.currency1);
         uint128 usableLiquidity = _getLiquidityForAmounts(totalAmount0, totalAmount1);
         (uint256 usableAmount0, uint256 usableAmount1) = _getAmountsForLiquidity(usableLiquidity);
+        return (totalAmount0 - usableAmount0, totalAmount1 - usableAmount1);
+    }
 
-        uint256 excessAmount0 = totalAmount0 - usableAmount0;
-        uint256 excessAmount1 = totalAmount1 - usableAmount1;
-
-        if (excessAmount0 > 0) {
-            console.log("withdrawing excess amount0", excessAmount0);
-            _withdrawFromYieldSource(_poolKey.currency0, excessAmount0);
-            _accruedYieldsCurrency0 += excessAmount0;
-        }
-        if (excessAmount1 > 0) {
-            console.log("withdrawing excess amount1", excessAmount1);
-            _withdrawFromYieldSource(_poolKey.currency1, excessAmount1);
-            _accruedYieldsCurrency1 += excessAmount1;
-        }
+    /**
+     * @dev Calculates the accrued yields for a given amount of shares.
+     */
+    function _getAccruedYieldsForShares(uint256 shares)
+        internal
+        view
+        virtual
+        returns (uint256 accruedYieldForShares0, uint256 accruedYieldForShares1)
+    {
+        (uint256 accruedYields0, uint256 accruedYields1) = _getAccruedYields();
+        return (accruedYields0 * shares / totalSupply(), accruedYields1 * shares / totalSupply());
     }
 
     /**
@@ -303,11 +291,6 @@ abstract contract ReHypothecationHook is BaseHook, AbstractAssetVault {
         // Get the total hook-owned liquidity from the amounts currently deposited in the yield sources
         uint256 liquidity = _getMaximumLiquidityFromYieldSources();
 
-        console.log("params.zeroForOne", params.zeroForOne);
-        console.log("params.amountSpecified", params.amountSpecified);
-        console.log("params.sqrtPriceLimitX96", params.sqrtPriceLimitX96);
-        console.log("liquidity from yield sources", liquidity);
-
         // Add liquidity to the pool (in a Just-in-Time provision of liquidity)
         if (liquidity > 0) _modifyLiquidity(liquidity.toInt256());
 
@@ -333,11 +316,8 @@ abstract contract ReHypothecationHook is BaseHook, AbstractAssetVault {
             _modifyLiquidity(-liquidity.toInt256());
 
             // Take or settle any pending deltas with the PoolManager
-            console.log("resolving hook delta for currency0");
             _resolveHookDelta(key.currency0);
-            console.log("resolving hook delta for currency1");
             _resolveHookDelta(key.currency1);
-            console.log("after swap completed");
         }
 
         return (this.afterSwap.selector, 0);
@@ -425,17 +405,14 @@ abstract contract ReHypothecationHook is BaseHook, AbstractAssetVault {
      * resolving the Flash Accounting requirements before locking the poolManager again.
      */
     function _resolveHookDelta(Currency currency) internal virtual {
-        console.log("resolving hook delta for", Currency.unwrap(currency));
         int256 currencyDelta = poolManager.currencyDelta(address(this), currency);
         if (currencyDelta > 0) {
             currency.take(poolManager, address(this), currencyDelta.toUint256(), false);
             _depositToYieldSource(currency, currencyDelta.toUint256());
-            console.log("deposited currencyDelta to yield source", currencyDelta.toUint256());
         }
         if (currencyDelta < 0) {
             _withdrawFromYieldSource(currency, (-currencyDelta).toUint256());
             currency.settle(poolManager, address(this), (-currencyDelta).toUint256(), false);
-            console.log("withdrawn currencyDelta from yield source", (-currencyDelta).toUint256());
         }
     }
 

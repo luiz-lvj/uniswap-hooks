@@ -13,13 +13,10 @@ import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 // Internal imports
-import {ReHypothecationHook} from "../../src/general/ReHypothecationHook.sol";
 import {ReHypothecationERC4626Mock, ERC4626YieldSourceMock} from "../../src/mocks/ReHypothecationERC4626Mock.sol";
 import {HookTest} from "../../test/utils/HookTest.sol";
 import {BalanceDeltaAssertions} from "../../test/utils/BalanceDeltaAssertions.sol";
-import {console} from "forge-std/console.sol";
 
 contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
     using StateLibrary for IPoolManager;
@@ -99,78 +96,61 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
     // Property: On first liquidity deposit before ratio divergences, the entire liquidity should be usable
     // assertEq(hook.getMaximumLiquidityFromYieldSources(), liquidity, "usable liquidity != liquidity");
 
-    function testFuzz_add_remove_inflationProtection_keeps_one_unit(uint128 liquidity) public {
+    function testFuzz_amountsForLiquidity_imprecision(uint128 liquidity) public {
         liquidity = uint128(bound(liquidity, 1e12, 1e20)); // Reasonable liquidity range
 
         BalanceDelta addDelta = hook.addReHypothecatedLiquidity(liquidity);
 
         uint256 lpMaxWithdraw = hook.maxWithdraw(address(this));
-        assertEq(lpMaxWithdraw, liquidity - 1, "lpMaxWithdraw != liquidity - 1");
+        // 1 wei of imprecision is lost in `lpMaxWithdraw` because of `amountsForLiquidity` rounding
+        assertApproxEqAbs(lpMaxWithdraw, liquidity - 1, 1, "lpMaxWithdraw != liquidity - 1");
 
         BalanceDelta removeDelta = hook.removeReHypothecatedLiquidity(lpMaxWithdraw.toUint128());
-        assertEq(-addDelta.amount0() - 1, removeDelta.amount0(), "added - 1 != removed");
-        assertEq(-addDelta.amount1() - 1, removeDelta.amount1(), "added - 1 != removed");
+
+        // Since the imprecision of `amountsForLiquidity` is collected as accrued yields,
+        // the added and removed accounts are exactly equal nonthenless.
+        assertEq(-addDelta.amount0(), removeDelta.amount0(), "added != removed");
+        assertEq(-addDelta.amount1(), removeDelta.amount1(), "added != removed");
 
         uint256 hookAmount0 = hook.getAmountInYieldSource(currency0);
-        assertEq(hookAmount0, 1, "hook amount0 != 1");
+        assertEq(hookAmount0, 0, "hook amount0 != 0");
 
         uint256 hookAmount1 = hook.getAmountInYieldSource(currency1);
-        assertEq(hookAmount1, 1, "hook amount1 != 1");
+        assertEq(hookAmount1, 0, "hook amount1 != 0");
 
         uint256 hookLiquidity = hook.totalAssets();
-        assertEq(hookLiquidity, 1, "hook liquidity != 1");
+        assertEq(hookLiquidity, 0, "hook liquidity != 0");
     }
 
     uint256[] public fixturepercent = [1, 50, 100]; // Ensure fixture inclusion
 
-    // function testFuzz_add_remove_sharesCalculation_singleLP(uint128 liquidity, uint256 percent) public {
-    //     liquidity = uint128(bound(liquidity, 1e12, 1e20)); // Reasonable liquidity range
-    //     percent = uint256(bound(percent, 1, 100)); // Reasonable percentage range
+    function testFuzz_add_remove_sharesCalculation_singleLP(uint128 liquidity, uint256 percent) public {
+        liquidity = uint128(bound(liquidity, 1e12, 1e20));
+        percent = uint256(bound(percent, 1, 100));
 
-    //     uint256 lpPreviewedSharesToAdd = hook.previewDeposit(liquidity);
-    //     BalanceDelta addDelta = hook.addReHypothecatedLiquidity(liquidity);
-    //     (uint256 amount0Added, uint256 amount1Added) =
-    //         ((-addDelta.amount0()).toUint256(), (-addDelta.amount1()).toUint256());
+        // Add liquidity and verify
+        uint256 expectedShares = hook.previewDeposit(liquidity);
+        BalanceDelta addDelta = hook.addReHypothecatedLiquidity(liquidity);
+        assertEq(hook.balanceOf(address(this)), expectedShares, "shares != previewed");
+        assertApproxEqAbs(hook.maxWithdraw(address(this)), liquidity, 1, "maxWithdraw != liquidity");
 
-    //     uint256 lpSharesAfterAdding = hook.balanceOf(address(this));
-    //     assertEq(lpSharesAfterAdding, lpPreviewedSharesToAdd, "lpSharesAdded != lpPreviewedSharesToAdd");
+        // Calculate removal amounts
+        uint256 liquidityToRemove = hook.maxWithdraw(address(this)) * percent / 100;
+        uint256 expectedBurn = hook.previewWithdraw(liquidityToRemove.toUint128());
+        uint256 sharesBefore = hook.balanceOf(address(this));
 
-    //     uint256 totalSharesAfterAdding = hook.totalSupply();
-    //     assertEq(totalSharesAfterAdding, lpSharesAfterAdding, "totalSharesAfterAdding != lpSharesAdded");
+        // Remove liquidity and verify
+        BalanceDelta removeDelta = hook.removeReHypothecatedLiquidity(liquidityToRemove.toUint128());
+        assertEq(sharesBefore - hook.balanceOf(address(this)), expectedBurn, "burned != previewed");
 
-    //     uint256 lpMaxWithdrawAfterAdding = hook.maxWithdraw(address(this));
-    //     assertApproxEqAbs(lpMaxWithdrawAfterAdding, liquidity, 1, "lpMaxWithdrawAfterAdding !~= liquidity");
-
-    //     uint256 liquidityToRemove = lpMaxWithdrawAfterAdding * percent / 100;
-
-    //     uint256 lpPreviewedSharesToBurn = hook.previewWithdraw(liquidityToRemove.toUint128());
-    //     BalanceDelta removeDelta = hook.removeReHypothecatedLiquidity(liquidityToRemove.toUint128());
-    //     (uint256 amount0Removed, uint256 amount1Removed) =
-    //         (removeDelta.amount0().toUint256(), removeDelta.amount1().toUint256());
-
-    //     uint256 lpSharesAfterBurning = hook.balanceOf(address(this));
-    //     uint256 lpSharesBurned = lpSharesAfterAdding - lpSharesAfterBurning;
-    //     assertEq(lpSharesBurned, lpPreviewedSharesToBurn, "lpSharesBurned != lpPreviewedSharesToBurn");
-
-    //     assertApproxEqAbs(
-    //         lpSharesBurned, lpSharesAfterAdding * percent / 100, 1, "lpSharesBurned !~= percent% of lpSharesAdded"
-    //     );
-    //     assertApproxEqAbs(amount0Removed, amount0Added * percent / 100, 2, "removed0 !~= percent% of added0");
-    //     assertApproxEqAbs(amount1Removed, amount1Added * percent / 100, 2, "removed1 !~= percent% of added1");
-
-    //     uint256 totalSharesAfterRemoving = hook.totalSupply();
-    //     assertApproxEqAbs(
-    //         totalSharesAfterRemoving, lpSharesAfterBurning, 1, "totalSharesAfterRemoving !~= lpSharesAfterBurning"
-    //     );
-
-    //     uint256 lpMaxWithdrawAfterRemoving = hook.maxWithdraw(address(this));
-    //     assertApproxEqAbs(
-    //         lpMaxWithdrawAfterRemoving,
-    //         lpMaxWithdrawAfterAdding - liquidityToRemove,
-    //         1,
-    //         "lpMaxWithdrawAfterRemoving !~= lpMaxWithdrawAfterAdding - liquidityToRemove"
-    //     );
-    // }
+        // Check proportional amounts
+        assertApproxEqAbs(
+            removeDelta.amount0().toUint256(), (-addDelta.amount0()).toUint256() * percent / 100, 2, "amount0 mismatch"
+        );
+        assertApproxEqAbs(
+            removeDelta.amount1().toUint256(), (-addDelta.amount1()).toUint256() * percent / 100, 2, "amount1 mismatch"
+        );
+    }
 
     function testFuzz_addRehypothecatedLiquidity_singleLP(uint128 liquidity) public {
         liquidity = uint128(bound(liquidity, 1e12, 1e20));
@@ -231,31 +211,28 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
 
         BalanceDelta delta = hook.removeReHypothecatedLiquidity(liquidityToRemove.toUint128());
 
-        assertEq((-delta.amount0()).toUint256(), amount0, "Delta.amount0() !~= amount0");
-        assertEq((-delta.amount1()).toUint256(), amount1, "Delta.amount1() !~= amount1");
+        assertEq(delta.amount0().toUint256(), amount0, "Delta.amount0() != amount0");
+        assertEq(delta.amount1().toUint256(), amount1, "Delta.amount1() != amount1");
 
         uint256 lpAmount0After = IERC20(Currency.unwrap(currency0)).balanceOf(address(this));
         uint256 lpAmount1After = IERC20(Currency.unwrap(currency1)).balanceOf(address(this));
-        assertApproxEqAbs(lpAmount0After, lpAmount0Before + amount0, 1, "lpAmount0After !~= lpAmount0Before + amount0");
-        assertApproxEqAbs(lpAmount1After, lpAmount1Before + amount1, 1, "lpAmount1After !~= lpAmount1Before + amount1");
+        assertEq(lpAmount0After, lpAmount0Before + amount0, "lpAmount0After != lpAmount0Before + amount0");
+        assertEq(lpAmount1After, lpAmount1Before + amount1, "lpAmount1After != lpAmount1Before + amount1");
 
         uint256 amount0InYieldSource0After = hook.getAmountInYieldSource(currency0);
         uint256 amount1InYieldSource1After = hook.getAmountInYieldSource(currency1);
-        assertApproxEqAbs(
+        assertEq(
             amount0InYieldSource0After,
             amount0InYieldSource0Before - amount0,
-            1,
-            "amount0InYieldSource0After !~= amount0InYieldSource0Before + amount0"
+            "amount0InYieldSource0After != amount0InYieldSource0Before + amount0"
         );
-        assertApproxEqAbs(
+        assertEq(
             amount1InYieldSource1After,
             amount1InYieldSource1Before - amount1,
-            1,
-            "amount1InYieldSource1After !~= amount1InYieldSource1Before + amount1"
+            "amount1InYieldSource1After != amount1InYieldSource1Before + amount1"
         );
 
-        uint256 heldShares = hook.balanceOf(address(this));
-        assertEq(heldShares, 0, "Held shares != 0");
+        assertEq(hook.balanceOf(address(this)), 0, "Held shares != 0");
         assertEq(hook.totalSupply(), 0, "total shares != 0");
     }
 
@@ -285,7 +262,7 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
         BalanceDelta noHookSwapDelta = swap(noHookKey, true, amountToSwap, ZERO_BYTES);
         vm.stopPrank();
 
-        assertApproxEqAbs(hookedSwapDelta, noHookSwapDelta, 1, "hookedSwapDelta !~= noHookSwapDelta");
+        assertEq(hookedSwapDelta, noHookSwapDelta, "hookedSwapDelta != noHookSwapDelta");
 
         // -- Remove liquidity --
 
@@ -300,6 +277,7 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
         assertApproxEqAbs(hookedRemoveDelta, noHookRemoveDelta, 1, "hookedRemoveDelta !~= noHookRemoveDelta");
     }
 }
+
 // function test_already_initialized_reverts() public {
 //     vm.expectRevert();
 //     initPool(currency0, currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);

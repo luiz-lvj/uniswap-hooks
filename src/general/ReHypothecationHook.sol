@@ -266,16 +266,33 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      * - The calculated amounts must be negative (assets flowing into the hook)
      */
     function _getDeltaForDepositedShares(uint128 liquidity) internal virtual returns (BalanceDelta delta) {
-        int24 tickLower = getTickLower();
-        int24 tickUpper = getTickUpper();
+        // If there aren't any shares, we use the current pool price to calculate the delta
+        if (totalSupply() == 0) {
+            int24 tickLower = getTickLower();
+            int24 tickUpper = getTickUpper();
 
-        (uint160 currentSqrtPriceX96, int24 currentTick,,) = poolManager.getSlot0(_poolKey.toId());
+            (uint160 currentSqrtPriceX96, int24 currentTick,,) = poolManager.getSlot0(_poolKey.toId());
 
-        delta =
-            LiquidityMath.calculateDeltaForLiquidity(liquidity, currentTick, tickLower, tickUpper, currentSqrtPriceX96);
+            delta = LiquidityMath.calculateDeltaForLiquidity(
+                liquidity, currentTick, tickLower, tickUpper, currentSqrtPriceX96
+            );
 
-        if (delta.amount0() > 0 || delta.amount1() > 0) {
-            revert InvalidAmounts();
+            if (delta.amount0() > 0 || delta.amount1() > 0) {
+                revert InvalidAmounts();
+            }
+        } else {
+            // In case the hook owns some shares, the amount to be deposited is the liquidity multiplied by the ratio of the hook's shares to the total shares
+
+            address yieldSource0 = getYieldSourceForCurrency(_poolKey.currency0);
+            address yieldSource1 = getYieldSourceForCurrency(_poolKey.currency1);
+
+            uint256 totalSharesCurrency0 = IERC4626(yieldSource0).maxWithdraw(address(this));
+            uint256 totalSharesCurrency1 = IERC4626(yieldSource1).maxWithdraw(address(this));
+
+            uint256 amount0 = FullMath.mulDiv(liquidity, totalSharesCurrency0, totalSupply());
+            uint256 amount1 = FullMath.mulDiv(liquidity, totalSharesCurrency1, totalSupply());
+
+            delta = toBalanceDelta(-int256(amount0).toInt128(), -int256(amount1).toInt128());
         }
     }
 

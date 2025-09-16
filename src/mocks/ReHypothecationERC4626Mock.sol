@@ -75,19 +75,6 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
     }
 
     // Helpers for testing
-
-    function getLiquidityForAmounts(uint256 amount0, uint256 amount1) public view returns (uint128 liquidity) {
-        return _getLiquidityForAmounts(amount0, amount1);
-    }
-
-    function getAmountsForLiquidity(uint128 liquidity) public view returns (uint256 amount0, uint256 amount1) {
-        return _getAmountsForLiquidity(liquidity);
-    }
-
-    function getUsableLiquidityFromYieldSources() public view returns (uint256) {
-        return _getUsableLiquidityFromYieldSources();
-    }
-
     function getAmountInYieldSource(Currency currency) public view returns (uint256) {
         return _getAmountInYieldSource(currency);
     }

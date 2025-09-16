@@ -14,9 +14,6 @@ import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 // Internal imports
 import {ReHypothecationHook} from "../general/ReHypothecationHook.sol";
 
-// Testing
-import {console} from "forge-std/console.sol";
-
 /// @title ERC4626Mock
 /// @notice A mock implementation of the ERC-4626 yield source.
 contract ERC4626YieldSourceMock is ERC4626 {
@@ -87,8 +84,8 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
         return _getAmountsForLiquidity(liquidity);
     }
 
-    function getMaximumLiquidityFromYieldSources() public view returns (uint256) {
-        return _getMaximumLiquidityFromYieldSources();
+    function getUsableLiquidityFromYieldSources() public view returns (uint256) {
+        return _getUsableLiquidityFromYieldSources();
     }
 
     function getAmountInYieldSource(Currency currency) public view returns (uint256) {

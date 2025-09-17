@@ -30,9 +30,9 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
  * @dev A Uniswap V4 hook that enables rehypothecation of liquidity positions.
  *
  * This hook allows users to deposit assets into yield-generating sources (e.g., ERC-4626 vaults)
- * while still making the same capital available as swapping liquidity in Uniswap pools.
- * Assets earn yield in yield sources most of the time, and are temporarily surfaced as pool
- * liquidity through Just-in-Time (JIT) provisioning during incoming swaps.
+ * while providing liquidity to Uniswap pools Just-in-Time (JIT) during swaps. Assets earn yield
+ * when idle and are temporarily injected as pool liquidity only when needed for swap execution,
+ * then immediately withdrawn back to yield sources.
  *
  * Conceptually, the hook acts as an intermediary that manages:
  * - the user-facing ERC20 share token (representing rehypothecated positions), and
@@ -53,6 +53,12 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
  *  `beforeAddLiquidity` and `beforeRemoveLiquidity` to disable cannonical liquidity modifications if desired.
  *
  * NOTE: Does not support native currency by default, but can be overridden to do so.
+ *
+ * WARNING: This hook relies on the PoolManager singleton token reserves for flash accounting during swaps.
+ * During `afterSwap`, the hook takes tokens from the PoolManager to settle deltas before users transfer
+ * their swap tokens. The PoolManager may lack sufficient reserves for illiquid tokens, preventing
+ * swaps until the PoolManager accumulates enough tokens for these small flash loans. This can be mitigated by
+ * maintaining some permanent pool liquidity alongside rehypothecated liquidity.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis.
  * We do not give any warranties and will not be liable for any losses incurred through any use of
@@ -75,6 +81,9 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
 
     /// @dev Error thrown when attempting to interact with a pool that has not been initialized.
     error NotInitialized();
+
+    /// @dev Error thrown when attempting to add or remove liquidity with zero shares.
+    error ZeroShares();
 
     /**
      * @dev Emitted when a `sender` adds rehypothecated `shares` to the `poolKey` pool,
@@ -115,11 +124,11 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     }
 
     /**
-     * @dev Adds rehypothecated liquidity to the pool and mints shares to the caller.
+     * @dev Adds rehypothecated liquidity to yield sources and mints shares to the caller.
      *
-     * Liquidity is provided in the current pool price ratio between currency0 and currency1, determined by
-     * `getAmountsForLiquidity`. Instead of being added to the pool, it is deposited in the yield sources,
-     * allowing the hook to use it dynamically during swaps while generating yield when idle.
+     * Liquidity is added in the ratio determined by the hook's existing balances in yield sources.
+     * Assets are deposited into yield sources where they earn returns when idle and can be
+     * dynamically used as pool liquidity during swaps.
      *
      * Returns a balance `delta` representing the assets deposited into the hook.
      *
@@ -130,6 +139,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      */
     function addReHypothecatedLiquidity(uint256 shares) public payable virtual returns (BalanceDelta delta) {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
+        if (shares == 0) revert ZeroShares();
 
         (uint256 amount0, uint256 amount1) = _convertSharesToAmounts(shares);
 
@@ -149,12 +159,9 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /**
      * @dev Removes rehypothecated liquidity from yield sources and burns caller's shares.
      *
-     * Liquidity is withdrawn in the current pool price ratio between currency0 and currency1, determined by
-     * `getAmountsForLiquidity`. Assets are withdrawn from yield sources where they were generating yield,
-     * allowing users to exit their rehypothecated position and reclaim their underlying tokens.
-     *
-     * Additionally, any `accruedYields` in the hook position are also withdrawn to the caller proportionally
-     * to the shares being burned.
+     * Liquidity is withdrawn in the ratio determined by the hook's existing balances in yield sources.
+     * Assets are withdrawn from yield sources where they were generating yield, allowing users to
+     * exit their rehypothecated position and reclaim their underlying tokens.
      *
      * Returns a balance `delta` representing the assets withdrawn from the hook.
      *
@@ -164,6 +171,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      */
     function removeReHypothecatedLiquidity(uint256 shares) public virtual returns (BalanceDelta delta) {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
+        if (shares == 0) revert ZeroShares();
 
         (uint256 amount0, uint256 amount1) = _convertSharesToAmounts(shares);
 
@@ -183,11 +191,11 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /**
      * @dev Hook executed before a swap operation to provide liquidity from rehypothecated assets.
      *
-     * This function gets the amount of liquidity to be provided from yield sources and temporarily
-     * adds it to the pool, in a Just-in-Time provision of liquidity.
+     * Gets the amount of liquidity to be provided from yield sources and temporarily adds it to the pool,
+     * in a Just-in-Time provision of liquidity.
      *
      * Note that at this point there are no actual transfers of tokens happening to the pool, instead,
-     * thanks to the Flash Accounting model this addition creates a currencyDelta to the hook, which
+     * thanks to the Flash Accounting model, this addition creates a currencyDelta to the hook, which
      * must be settled during the `_afterSwap` function before locking the poolManager again.
      */
     function _beforeSwap(
@@ -196,10 +204,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         SwapParams calldata, /* params */
         bytes calldata /* hookData */
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
-        // Get the total hook-owned liquidity from the amounts currently deposited in the yield sources
+        // Get the liquidity to be used from the amounts currently deposited in the yield sources
         uint256 liquidityToUse = _getLiquidityToUse();
-
-        // Add liquidity to the pool (in a Just-in-Time provision of liquidity)
         if (liquidityToUse > 0) _modifyLiquidity(liquidityToUse.toInt256());
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
@@ -208,8 +214,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /**
      * @dev Hook executed after a swap operation to remove temporary liquidity and rebalance assets.
      *
-     * This function removes the liquidity that was temporarily added in `_beforeSwap`, and resolves
-     * the hook's deltas in each currency in order to zero them.
+     * Removes the liquidity that was temporarily added in `_beforeSwap`, and resolves the hook's
+     * deltas in each currency in order to neutralize any pending debits or credits.
      */
     function _afterSwap(
         address, /* sender */
@@ -248,17 +254,17 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     }
 
     /**
-     * @dev Preview the amounts required/obtained for a given amount of shares.
+     * @dev Preview the amounts of currency0 and currency1 required/obtained for a given amount of shares.
      */
     function previewAmountsForShares(uint256 shares) public view virtual returns (uint256 amount0, uint256 amount1) {
         return _convertSharesToAmounts(shares);
     }
 
     /**
-     * @dev Calculates the amounts required for adding a specific amount of shares.
+     * @dev Calculates the amounts of currency0 and currency1 required for adding a specific amount of shares.
      *
-     * If the hook has not emitted shares yet, the initial deposit currencies ratio is determined by the
-     * current pool price. Otherwise, it is determined by the hook balances deposited in the yield sources.
+     * If the hook has not emitted shares yet, the initial deposit ratio is determined by the current pool price.
+     * Otherwise, it is determined by ratio of the hook balances in the yield sources.
      */
     function _convertSharesToAmounts(uint256 shares) internal view virtual returns (uint256 amount0, uint256 amount1) {
         // If the hook has not emitted shares yet, then consider `liquidity == shares`
@@ -271,7 +277,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
                 shares.toUint128()
             );
         }
-        // If the hook has shares, then deposit proportionally to the hook balances.
+        // If the hook has shares, then deposit proportionally to the hook balances in the yield sources
         else {
             amount0 = _shareToAmount(shares, _poolKey.currency0);
             amount1 = _shareToAmount(shares, _poolKey.currency1);
@@ -293,9 +299,9 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
      * By default, returns the maximum liquidity that can be provided with the current
      * balances of the hook in the yield sources.
      *
-     * NOTE: Since liquidity is provided and withdrawn transiently during flash accounting it,
+     * NOTE: Since liquidity is provided and withdrawn transiently during flash accounting, it
      * can be virtually inflated for performing "leveraged liquidity" strategies, which would
-     * give better pricing to swappers at the cost of the profitability of LP's and increased risk.
+     * give better pricing to swappers at the cost of the profitability of LP's and increased risks.
      */
     function _getLiquidityToUse() internal view virtual returns (uint256) {
         (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
@@ -311,9 +317,10 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /**
      * @dev Retrieves the current `liquidity` of the hook owned liquidity position in the `_poolKey` pool.
      *
-     * WARNING: Given that we are doing just-in-time liquidity provisioning, the liquidity will only be inside the
-     * hook's position for the instant duration between `beforeSwap` and `afterSwap`. It will be zero in any other
-     * point in the hook lifecycle.
+     * NOTE: Given that just-in-time liquidity provisioning is performed, this function will only return values
+     * larger than zero between `beforeSwap` and `afterSwap`, where the liquidity is actually inside the pool.
+     * It will return zero in any other point in the hook lifecycle. For determining the hook balances in any other point,
+     * use `_getAmountInYieldSource`.
      */
     function _getHookPositionLiquidity() internal view virtual returns (uint128 liquidity) {
         bytes32 positionKey = Position.calculatePositionKey(address(this), getTickLower(), getTickUpper(), bytes32(0));

@@ -26,8 +26,6 @@ import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
 import {BaseHook} from "../base/BaseHook.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
-import {console} from "forge-std/console.sol";
-
 /**
  * @dev A Uniswap V4 hook that enables rehypothecation of liquidity positions.
  *
@@ -199,12 +197,10 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         bytes calldata /* hookData */
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
         // Get the total hook-owned liquidity from the amounts currently deposited in the yield sources
-        uint256 liquidity = _getLiquidityToUse();
-
-        console.log("liquidity on hooked pool", liquidity);
+        uint256 liquidityToUse = _getLiquidityToUse();
 
         // Add liquidity to the pool (in a Just-in-Time provision of liquidity)
-        if (liquidity > 0) _modifyLiquidity(liquidity.toInt256());
+        if (liquidityToUse > 0) _modifyLiquidity(liquidityToUse.toInt256());
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
@@ -233,6 +229,22 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         }
 
         return (this.afterSwap.selector, 0);
+    }
+
+    /**
+     * @dev Takes or settles any pending `currencyDelta` amount with the poolManager,
+     * neutralizing the Flash Accounting deltas before locking the poolManager again.
+     */
+    function _resolveHookDelta(Currency currency) internal virtual {
+        int256 currencyDelta = poolManager.currencyDelta(address(this), currency);
+        if (currencyDelta > 0) {
+            currency.take(poolManager, address(this), currencyDelta.toUint256(), false);
+            _depositToYieldSource(currency, currencyDelta.toUint256());
+        }
+        if (currencyDelta < 0) {
+            _withdrawFromYieldSource(currency, (-currencyDelta).toUint256());
+            currency.settle(poolManager, address(this), (-currencyDelta).toUint256(), false);
+        }
     }
 
     /**
@@ -342,22 +354,6 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
             }),
             ""
         );
-    }
-
-    /**
-     * @dev Takes or settles any pending `currencyDelta` amount with the poolManager,
-     * neutralizing the Flash Accounting deltas before locking the poolManager again.
-     */
-    function _resolveHookDelta(Currency currency) internal virtual {
-        int256 currencyDelta = poolManager.currencyDelta(address(this), currency);
-        if (currencyDelta > 0) {
-            currency.take(poolManager, address(this), currencyDelta.toUint256(), false);
-            _depositToYieldSource(currency, currencyDelta.toUint256());
-        }
-        if (currencyDelta < 0) {
-            _withdrawFromYieldSource(currency, (-currencyDelta).toUint256());
-            currency.settle(poolManager, address(this), (-currencyDelta).toUint256(), false);
-        }
     }
 
     /*

@@ -255,7 +255,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
                 shares.toUint128()
             );
         }
-        // If the hook has shares, then deposit proportionally.
+        // If the hook has shares, then deposit proportionally to the hook balances.
         else {
             amount0 = _shareToAmount(shares, _poolKey.currency0);
             amount1 = _shareToAmount(shares, _poolKey.currency1);

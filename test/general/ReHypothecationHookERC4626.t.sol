@@ -257,51 +257,33 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
 
     // Compare adding, swapping and removing between hooked and unhooked pool.
     function test_differential_add_swap_remove_SingleLP(uint256 shares, int256 amountToSwap) public {
-        shares = uint256(bound(shares, 1e12, 1e20)); // add up to 10.000 shares
-        amountToSwap = int256(bound(amountToSwap, 1e10, 1e18)); // swap 100 tokens
+        shares = uint256(bound(shares, 1e12, 1e26)); // add from 0.000001 to 100M shares
+        amountToSwap = int256(bound(amountToSwap, 1e10, 1e24)); // swap from 0.00000001 to 1M tokens
+        // assume the swap is less than half of the added liquidity
+        vm.assume(amountToSwap * 2 < int256(shares));
 
-        vm.assume(int256(shares) > amountToSwap);
-        // CHECK more closely this values.
-
-        // vm.startPrank(lp1);
         // -- Add liquidity --
         // Unhooked
-        console.log("adding on unhooked");
         BalanceDelta noHookAddDelta =
             modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), int256(uint256(shares)), 0);
-        console.log("added on unhooked");
         // Hooked
-        console.log("adding on hooked");
         BalanceDelta hookedAddDelta = hook.addReHypothecatedLiquidity(shares);
-        console.log("added on hooked");
-
-        assertApproxEqAbs(hookedAddDelta, noHookAddDelta, 1, "hookedAddDelta !~= noHookAddDelta");
+        assertApproxEqAbs(hookedAddDelta, noHookAddDelta, 2, "hookedAddDelta !~= noHookAddDelta");
 
         // -- Swap --
         // Unhooked
-        console.log("swapping on unhooked");
         BalanceDelta noHookSwapDelta = swap(noHookKey, true, amountToSwap, ZERO_BYTES);
-        console.log("swapped on unhooked");
         // Hooked
         BalanceDelta hookedSwapDelta = swap(key, true, amountToSwap, ZERO_BYTES);
-        console.log("swapped on hooked");
-
         assertApproxEqAbs(hookedSwapDelta, noHookSwapDelta, 2, "hookedSwapDelta !~= noHookSwapDelta");
 
         // -- Remove liquidity --
         // Unhooked
-        console.log("removing on unhooked");
         BalanceDelta noHookRemoveDelta =
             modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), -int256(uint256(shares)), 0);
-        console.log("removed on unhooked");
         // Hooked
-        console.log("removing on hooked");
         BalanceDelta hookedRemoveDelta = hook.removeReHypothecatedLiquidity(shares);
-        console.log("removed on hooked");
-
-        assertApproxEqAbs(hookedRemoveDelta, noHookRemoveDelta, 1, "hookedRemoveDelta !~= noHookRemoveDelta");
-
-        // vm.stopPrank();
+        assertApproxEqAbs(hookedRemoveDelta, noHookRemoveDelta, 2, "hookedRemoveDelta !~= noHookRemoveDelta");
     }
 }
 

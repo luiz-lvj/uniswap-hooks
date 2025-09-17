@@ -26,6 +26,8 @@ import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
 import {BaseHook} from "../base/BaseHook.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
+import {console} from "forge-std/console.sol";
+
 /**
  * @dev A Uniswap V4 hook that enables rehypothecation of liquidity positions.
  *
@@ -198,6 +200,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
         // Get the total hook-owned liquidity from the amounts currently deposited in the yield sources
         uint256 liquidity = _getLiquidityToUse();
+
+        console.log("liquidity on hooked pool", liquidity);
 
         // Add liquidity to the pool (in a Just-in-Time provision of liquidity)
         if (liquidity > 0) _modifyLiquidity(liquidity.toInt256());

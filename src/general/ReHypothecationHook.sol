@@ -21,10 +21,10 @@ import {SwapParams, ModifyLiquidityParams} from "@uniswap/v4-core/src/types/Pool
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
+import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
 // Internal imports
 import {BaseHook} from "../base/BaseHook.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
-import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
 
 /**
  * @dev A Uniswap V4 hook that enables rehypothecation of liquidity positions.
@@ -52,7 +52,7 @@ import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
  * NOTE: By default, both cannonical and rehypothecated liquidity modifications are allowed. Override
  *  `beforeAddLiquidity` and `beforeRemoveLiquidity` to disable cannonical liquidity modifications if desired.
  *
- * NOTE: Does not support native currency by default, but can be overriden to do so.
+ * NOTE: Does not support native currency by default, but can be overridden to do so.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis.
  * We do not give any warranties and will not be liable for any losses incurred through any use of
@@ -241,11 +241,11 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /**
      * @dev Calculates the amounts required for adding a specific amount of shares.
      *
-     * If the hook has not emited shares yet, the initial deposit currencies ratio is determined by the
+     * If the hook has not emitted shares yet, the initial deposit currencies ratio is determined by the
      * current pool price. Otherwise, it is determined by the hook balances deposited in the yield sources.
      */
     function _convertSharesToAmounts(uint256 shares) internal view virtual returns (uint256 amount0, uint256 amount1) {
-        // If the hook has not emited shares yet, then consider `liquidity == shares`
+        // If the hook has not emitted shares yet, then consider `liquidity == shares`
         if (totalSupply() == 0) {
             (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
             return LiquidityAmounts.getAmountsForLiquidity(
@@ -316,7 +316,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /**
      * @dev Returns the lower tick boundary for the hook's liquidity position.
      *
-     * Can be overriden to customize the tick boundary.
+     * Can be overridden to customize the tick boundary.
      */
     function getTickLower() public view virtual returns (int24) {
         return TickMath.minUsableTick(_poolKey.tickSpacing);
@@ -325,7 +325,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /**
      * @dev Returns the upper tick boundary for the hook's liquidity position.
      *
-     * Can be overriden to customize the tick boundary.
+     * Can be overridden to customize the tick boundary.
      */
     function getTickUpper() public view virtual returns (int24) {
         return TickMath.maxUsableTick(_poolKey.tickSpacing);
@@ -368,7 +368,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /*
      * @dev Transfers the `amount` of `currency` from the `sender` to the hook.
      *
-     * Can be overriden to handle native currency.
+     * Can be overridden to handle native currency.
      */
     function _transferFromSenderToHook(Currency currency, uint256 amount, address sender) internal virtual {
         IERC20(Currency.unwrap(currency)).safeTransferFrom(sender, address(this), amount);

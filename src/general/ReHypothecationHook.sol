@@ -263,15 +263,6 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     }
 
     /**
-     * @dev Converts a given `currency` amount to the corresponding `shares` amount.
-     */
-    // function _amountToShare(uint256 amount, Currency currency) internal view virtual returns (uint256 shares) {
-    //     uint256 totalAmount = _getAmountInYieldSource(currency);
-    //     if (totalAmount == 0) return 0;
-    //     return FullMath.mulDiv(amount, totalSupply(), totalAmount);
-    // }
-
-    /**
      * @dev Converts a given `shares` amount to the corresponding `currency` amount.
      */
     function _shareToAmount(uint256 shares, Currency currency) internal view virtual returns (uint256 amount) {
@@ -281,13 +272,13 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     }
 
     /**
-     * @dev Returns the `liquidity` to be provided just-in-time for an incoming swap.
+     * @dev Returns the `liquidity` to be provided just-in-time for incoming swaps.
      *
      * By default, returns the maximum liquidity that can be provided with the current
      * balances of the hook in the yield sources.
      *
-     * NOTE: Since liquidity is provided just-in-time and withdrawn during flash accounting,
-     * it can be virtually inflated for performing "leveraged liquidity" strategies, which would
+     * NOTE: Since liquidity is provided and withdrawn transiently during flash accounting it,
+     * can be virtually inflated for performing "leveraged liquidity" strategies, which would
      * give better pricing to swappers at the cost of the profitability of LP's and increased risk.
      */
     function _getLiquidityToUse() internal view virtual returns (uint256) {

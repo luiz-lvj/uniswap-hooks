@@ -49,8 +49,8 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
  * NOTE: By default, the hook liquidity position is placed in the entire curve range. Override
  * the `getTickLower` and `getTickUpper` functions to customize the position.
  *
- * NOTE: By default, both cannonical and rehypothecated liquidity modifications are allowed. Override
- *  `beforeAddLiquidity` and `beforeRemoveLiquidity` to disable cannonical liquidity modifications if desired.
+ * NOTE: By default, both canonical and rehypothecated liquidity modifications are allowed. Override
+ *  `beforeAddLiquidity` and `beforeRemoveLiquidity` to disable canonical liquidity modifications if desired.
  *
  * NOTE: Does not support native currency by default, but can be overridden to do so.
  *

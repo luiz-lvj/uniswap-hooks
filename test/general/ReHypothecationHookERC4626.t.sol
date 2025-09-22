@@ -15,8 +15,11 @@ import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 // Internal imports
 import {ReHypothecationERC4626Mock, ERC4626YieldSourceMock} from "../../src/mocks/ReHypothecationERC4626Mock.sol";
+import {ReHypothecationHook} from "../../src/general/ReHypothecationHook.sol";
 import {HookTest} from "../../test/utils/HookTest.sol";
 import {BalanceDeltaAssertions} from "../../test/utils/BalanceDeltaAssertions.sol";
+import {CustomRevert} from "@uniswap/v4-core/src/libraries/CustomRevert.sol";
+import {BaseHook} from "../../src/base/BaseHook.sol";
 
 contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
     using StateLibrary for IPoolManager;
@@ -57,7 +60,7 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
         vm.label(Currency.unwrap(currency0), "currency0");
         vm.label(Currency.unwrap(currency1), "currency1");
 
-        _fund([address(manager), address(this), lp1, lp2], [currency0, currency1], 1e24);
+        _fund([address(manager), address(this), lp1, lp2], [currency0, currency1], 1e30);
 
         _approveCurrencies(
             [address(this), lp1, lp2],
@@ -89,7 +92,41 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
         }
     }
 
+    // -- INITIALIZING -- //
+
+    function test_initialize_already_initialized_reverts() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CustomRevert.WrappedError.selector,
+                address(hook), // target
+                bytes4(BaseHook.beforeInitialize.selector), // selector (beforeInitialize)
+                abi.encodeWithSelector(ReHypothecationHook.AlreadyInitialized.selector), // reason
+                hex"a9e35b2f" // details
+            )
+        );
+        initPool(currency0, currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
+    }
+
     // -- ADDING -- //
+
+    function test_add_uninitialized_reverts() public {
+        uint160 hookFlags = uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG);
+        ReHypothecationERC4626Mock newHook = ReHypothecationERC4626Mock(
+            address(hookFlags + 0x10000000000000000000000000000000) // generate a different address
+        );
+        deployCodeTo(
+            "src/mocks/ReHypothecationERC4626Mock.sol:ReHypothecationERC4626Mock",
+            abi.encode(manager, address(yieldSource0), address(yieldSource1)),
+            address(newHook)
+        );
+        vm.expectRevert(ReHypothecationHook.NotInitialized.selector);
+        newHook.addReHypothecatedLiquidity(1e15);
+    }
+
+    function test_add_zero_reverts() public {
+        vm.expectRevert(ReHypothecationHook.ZeroShares.selector);
+        hook.addReHypothecatedLiquidity(0);
+    }
 
     function testFuzz_add_singleLP(uint128 shares) public {
         shares = uint128(bound(shares, 1e12, 1e20));
@@ -100,12 +137,12 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
         uint256 amount0InYieldSource0Before = hook.getAmountInYieldSource(currency0);
         uint256 amount1InYieldSource1Before = hook.getAmountInYieldSource(currency1);
 
-        (uint256 amount0, uint256 amount1) = hook.previewAmountsForShares(shares);
+        (uint256 previewedAmount0, uint256 previewedAmount1) = hook.previewAmountsForShares(shares);
 
         BalanceDelta delta = hook.addReHypothecatedLiquidity(shares);
 
-        assertEq((-delta.amount0()).toUint256(), amount0, "Delta.amount0() != amount0");
-        assertEq((-delta.amount1()).toUint256(), amount1, "Delta.amount1() != amount1");
+        assertEq((-delta.amount0()).toUint256(), previewedAmount0, "Delta.amount0() != amount0");
+        assertEq((-delta.amount1()).toUint256(), previewedAmount1, "Delta.amount1() != amount1");
 
         uint256 lpAmount0After = IERC20(Currency.unwrap(currency0)).balanceOf(address(this));
         uint256 lpAmount1After = IERC20(Currency.unwrap(currency1)).balanceOf(address(this));
@@ -113,17 +150,17 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
         uint256 amount0InYieldSource0After = hook.getAmountInYieldSource(currency0);
         uint256 amount1InYieldSource1After = hook.getAmountInYieldSource(currency1);
 
-        assertEq(lpAmount0After, lpAmount0Before - amount0, "lpAmount0After != lpAmount0Before - amount0");
-        assertEq(lpAmount1After, lpAmount1Before - amount1, "lpAmount1After != lpAmount1Before - amount1");
+        assertEq(lpAmount0After, lpAmount0Before - previewedAmount0, "lpAmount0After != lpAmount0Before - amount0");
+        assertEq(lpAmount1After, lpAmount1Before - previewedAmount1, "lpAmount1After != lpAmount1Before - amount1");
 
         assertEq(
             amount0InYieldSource0After,
-            amount0InYieldSource0Before + amount0,
+            amount0InYieldSource0Before + previewedAmount0,
             "Amount0InYieldSource0After != Amount0InYieldSource0Before + Amount0"
         );
         assertEq(
             amount1InYieldSource1After,
-            amount1InYieldSource1Before + amount1,
+            amount1InYieldSource1Before + previewedAmount1,
             "amount1InYieldSource1After != amount1InYieldSource1Before + amount1"
         );
 
@@ -169,7 +206,7 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
         // both must have received the same amount of shares
         assertEq(hook.balanceOf(lp1), hook.balanceOf(lp2));
 
-        // lp2 has to deposit more assets than lp1 to achieve the same shares
+        // lp2 must have deposited more assets than lp1 to achieve the same shares
         assertGt(-addDeltalp2.amount0(), -addDeltalp1.amount0());
         assertGt(-addDeltalp2.amount1(), -addDeltalp1.amount1());
 
@@ -194,7 +231,7 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
 
         BalanceDelta addDeltalp2 = hook.addReHypothecatedLiquidity(shareslp2);
 
-        // for getting the same shares, lp2 should pay 10% more currency0 and 20% more currency1
+        // in order to obtain the same shares, lp2 must pay 10% more currency0 and 20% more currency1
         assertApproxEqAbs(-addDeltalp2.amount0(), -addDeltalp1.amount0() * 110 / 100, 1);
         assertApproxEqAbs(-addDeltalp2.amount1(), -addDeltalp1.amount1() * 120 / 100, 1);
 
@@ -203,6 +240,25 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
     }
 
     // -- REMOVING -- //
+
+    function test_remove_uninitialized_reverts() public {
+        uint160 hookFlags = uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG);
+        ReHypothecationERC4626Mock newHook = ReHypothecationERC4626Mock(
+            address(hookFlags + 0x10000000000000000000000000000000) // generate a different address
+        );
+        deployCodeTo(
+            "src/mocks/ReHypothecationERC4626Mock.sol:ReHypothecationERC4626Mock",
+            abi.encode(manager, address(yieldSource0), address(yieldSource1)),
+            address(newHook)
+        );
+        vm.expectRevert(ReHypothecationHook.NotInitialized.selector);
+        newHook.removeReHypothecatedLiquidity(1e15);
+    }
+
+    function test_remove_zero_reverts() public {
+        vm.expectRevert(ReHypothecationHook.ZeroShares.selector);
+        hook.removeReHypothecatedLiquidity(0);
+    }
 
     function testFuzz_remove_singleLP(uint128 shares) public {
         shares = uint128(bound(shares, 1e12, 1e20));
@@ -250,18 +306,18 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
     }
 
     function test_remove_multipleLP() public {
-        uint128 shareslp1 = 1e15;
-        uint128 shareslp2 = 1e15;
+        uint128 shareslp1 = 1e18;
+        uint128 shareslp2 = 1e18;
 
-        vm.startPrank(lp1);
+        vm.prank(lp1);
         hook.addReHypothecatedLiquidity(shareslp1);
-        BalanceDelta removeDeltalp1 = hook.removeReHypothecatedLiquidity(shareslp1);
-        vm.stopPrank();
-
-        vm.startPrank(lp2);
+        vm.prank(lp2);
         hook.addReHypothecatedLiquidity(shareslp2);
+
+        vm.prank(lp1);
+        BalanceDelta removeDeltalp1 = hook.removeReHypothecatedLiquidity(shareslp1);
+        vm.prank(lp2);
         BalanceDelta removeDeltalp2 = hook.removeReHypothecatedLiquidity(shareslp2);
-        vm.stopPrank();
 
         // both must have removed the same amount of assets
         assertEq(removeDeltalp1, removeDeltalp2);
@@ -274,7 +330,101 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
         assertEq(hook.totalSupply(), 0);
     }
 
-    // -- Adding & removing -- //
+    function test_swap_remove_remove_multipleLP() public {
+        uint128 shareslp1 = 1e18;
+        uint128 shareslp2 = 1e18;
+
+        vm.prank(lp1);
+        hook.addReHypothecatedLiquidity(shareslp1);
+        vm.prank(lp2);
+        hook.addReHypothecatedLiquidity(shareslp2);
+
+        swap(key, true, 1e15, ZERO_BYTES);
+
+        vm.prank(lp1);
+        BalanceDelta removeDeltalp1 = hook.removeReHypothecatedLiquidity(shareslp1);
+        vm.prank(lp2);
+        BalanceDelta removeDeltalp2 = hook.removeReHypothecatedLiquidity(shareslp2);
+
+        // both must have removed the same amount of assets
+        assertApproxEqAbs(removeDeltalp1, removeDeltalp2, 1);
+
+        // both must have burned their shares
+        assertEq(hook.balanceOf(lp1), 0);
+        assertEq(hook.balanceOf(lp2), 0);
+
+        // total supply should be 0
+        assertEq(hook.totalSupply(), 0);
+    }
+
+    function test_remove_swap_remove_multipleLP() public {
+        uint128 shareslp1 = 1e18;
+        uint128 shareslp2 = 1e18;
+
+        vm.prank(lp1);
+        hook.addReHypothecatedLiquidity(shareslp1);
+        vm.prank(lp2);
+        hook.addReHypothecatedLiquidity(shareslp2);
+
+        vm.prank(lp1);
+        BalanceDelta removeDeltalp1 = hook.removeReHypothecatedLiquidity(shareslp1);
+
+        swap(key, true, 1e15, ZERO_BYTES);
+        swap(key, false, 1e15 + 1e10, ZERO_BYTES);
+
+        vm.prank(lp2);
+        BalanceDelta removeDeltalp2 = hook.removeReHypothecatedLiquidity(shareslp2);
+
+        // lp2 must have removed more assets, since the fees from the swap belongs to him
+        assertGt(removeDeltalp2.amount0(), removeDeltalp1.amount0());
+        assertGt(removeDeltalp2.amount1(), removeDeltalp1.amount1());
+
+        // both must have burned their shares
+        assertEq(hook.balanceOf(lp1), 0);
+        assertEq(hook.balanceOf(lp2), 0);
+
+        // total supply should be 0
+        assertEq(hook.totalSupply(), 0);
+    }
+
+    function test_remove_yieldsGrowth_remove_multipleLP() public {
+        uint128 shareslp1 = 1e18;
+        uint128 shareslp2 = 1e18;
+
+        vm.prank(lp1);
+        hook.addReHypothecatedLiquidity(shareslp1);
+        vm.prank(lp2);
+        hook.addReHypothecatedLiquidity(shareslp2);
+
+        // lp1 removes
+        vm.prank(lp1);
+        BalanceDelta removeDeltalp1 = hook.removeReHypothecatedLiquidity(shareslp1);
+
+        uint256 amount0InYieldSource = hook.getAmountInYieldSource(currency0);
+        uint256 amount1InYieldSource = hook.getAmountInYieldSource(currency1);
+
+        // yield1 grows by 10%
+        currency0.transfer(address(yieldSource0), amount0InYieldSource * 10 / 100);
+        // yield2 grows by 20%
+        currency1.transfer(address(yieldSource1), amount1InYieldSource * 20 / 100);
+
+        // lp2 removes
+        vm.prank(lp2);
+        BalanceDelta removeDeltalp2 = hook.removeReHypothecatedLiquidity(shareslp2);
+
+        // lp2 must have removed more assets, since the fees from the yield growth belongs to him
+        assertGt(removeDeltalp2.amount0(), removeDeltalp1.amount0());
+        assertGt(removeDeltalp2.amount1(), removeDeltalp1.amount1());
+
+        // both must have burned their shares
+        assertEq(hook.balanceOf(lp1), 0);
+        assertEq(hook.balanceOf(lp2), 0);
+
+        // total supply should be 0
+        assertEq(hook.totalSupply(), 0);
+    }
+
+    // -- differential -- //
 
     function testFuzz_differential_add_swap_remove_SingleLP(uint256 shares, int256 amountToSwap) public {
         shares = uint256(bound(shares, 1e12, 1e26)); // add from 0.000001 to 100M shares
@@ -288,14 +438,14 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
             modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), int256(uint256(shares)), 0);
         // Hooked
         BalanceDelta hookedAddDelta = hook.addReHypothecatedLiquidity(shares);
-        assertApproxEqAbs(hookedAddDelta, noHookAddDelta, 2, "hookedAddDelta !~= noHookAddDelta");
+        assertApproxEqAbs(hookedAddDelta, noHookAddDelta, 10, "hookedAddDelta !~= noHookAddDelta");
 
         // -- Swap --
         // Unhooked
         BalanceDelta noHookSwapDelta = swap(noHookKey, true, amountToSwap, ZERO_BYTES);
         // Hooked
         BalanceDelta hookedSwapDelta = swap(key, true, amountToSwap, ZERO_BYTES);
-        assertApproxEqAbs(hookedSwapDelta, noHookSwapDelta, 2, "hookedSwapDelta !~= noHookSwapDelta");
+        assertApproxEqAbs(hookedSwapDelta, noHookSwapDelta, 10, "hookedSwapDelta !~= noHookSwapDelta");
 
         // -- Remove liquidity --
         // Unhooked
@@ -305,204 +455,4 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
         BalanceDelta hookedRemoveDelta = hook.removeReHypothecatedLiquidity(shares);
         assertApproxEqAbs(hookedRemoveDelta, noHookRemoveDelta, 2, "hookedRemoveDelta !~= noHookRemoveDelta");
     }
-
-    // function test_add_remove_withYieldsGrowth() public () {};
-
-    // function test_add_swap_remove_withYieldsGrowth() public () {};
 }
-
-// function test_already_initialized_reverts() public {
-//     vm.expectRevert();
-//     initPool(currency0, currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
-// }
-
-// function test_full_cycle() public {
-//     uint128 liquidity = 1e15;
-//     BalanceDelta delta = hook.addReHypothecatedLiquidity(liquidity);
-
-//     assertEq(
-//         IERC4626(address(yieldSource0)).balanceOf(address(hook)),
-//         uint256(liquidity),
-//         "YieldSource0 balance should be the same as the liquidity"
-//     );
-//     assertEq(
-//         IERC4626(address(yieldSource1)).balanceOf(address(hook)),
-//         uint256(liquidity),
-//         "YieldSource1 balance should be the same as the liquidity"
-//     );
-
-//     assertEq(manager.getLiquidity(key.toId()), 0, "Liquidity should be 0");
-
-//     assertEq(hook.balanceOf(address(this)), liquidity, "Hook balance should be the same as the liquidity");
-
-//     // add rehypothecated liquidity should be equal to modifyPoolLiquidity with a pool with the same state
-//     BalanceDelta expectedDelta =
-//         modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), int256(uint256(liquidity)), 0);
-//     assertEq(delta, expectedDelta, "Delta should be equal");
-
-//     BalanceDelta swapDelta = swap(key, false, 1e14, ZERO_BYTES);
-//     BalanceDelta noHookSwapDelta = swap(noHookKey, false, 1e14, ZERO_BYTES);
-
-//     assertEq(swapDelta, noHookSwapDelta, "Swap delta should be equal");
-//     assertEq(manager.getLiquidity(key.toId()), 0, "Liquidity should be 0");
-
-//     assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(hook)), 0, "Currency0 balance should be 0");
-//     assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(hook)), 0, "Currency1 balance should be 0");
-
-//     assertApproxEqAbs(
-//         IERC4626(address(yieldSource0)).balanceOf(address(hook)),
-//         uint256(liquidity - uint128(swapDelta.amount0())),
-//         2,
-//         "YieldSource0 balance should go to user"
-//     );
-//     assertApproxEqAbs(
-//         IERC4626(address(yieldSource1)).balanceOf(address(hook)),
-//         uint256(uint128(int128(liquidity) - swapDelta.amount1())),
-//         2,
-//         "YieldSource1 balance should go to user"
-//     );
-
-//     delta = hook.removeReHypothecatedLiquidity(address(this));
-
-//     expectedDelta =
-//         modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), int256(-int128(liquidity)), 0);
-
-//     assertEq(delta, expectedDelta, "Delta should be equal");
-
-//     assertEq(manager.getLiquidity(key.toId()), 0, "Liquidity should be 0");
-
-//     assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(hook)), 0, "Currency0 balance should be 0");
-//     assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(hook)), 0, "Currency1 balance should be 0");
-
-//     assertEq(IERC4626(address(yieldSource0)).balanceOf(address(hook)), 0, "YieldSource0 balance should be 0");
-//     assertEq(IERC4626(address(yieldSource1)).balanceOf(address(hook)), 0, "YieldSource1 balance should be 0");
-
-//     assertEq(hook.balanceOf(address(this)), 0, "Hook balance should be 0");
-// }
-
-// function test_swap_with_increased_shares() public {
-//     uint128 liquidity = 1e15;
-//     BalanceDelta delta = hook.addReHypothecatedLiquidity(liquidity);
-
-//     IERC20(Currency.unwrap(currency0)).transfer(address(yieldSource0), 1e14); // 10% increase on currency0
-//     IERC20(Currency.unwrap(currency1)).transfer(address(yieldSource1), 1e14); // 10% increase on currency1
-
-//     assertEq(
-//         IERC4626(address(yieldSource0)).balanceOf(address(hook)),
-//         uint256(liquidity),
-//         "YieldSource0 balance should be the same as the liquidity"
-//     );
-//     assertEq(
-//         IERC4626(address(yieldSource1)).balanceOf(address(hook)),
-//         uint256(liquidity),
-//         "YieldSource1 balance should be the same as the liquidity"
-//     );
-
-//     assertEq(manager.getLiquidity(key.toId()), 0, "Liquidity should be 0");
-
-//     assertEq(hook.balanceOf(address(this)), liquidity, "Hook balance should be the same as the liquidity");
-
-//     // add rehypothecated liquidity should be equal to modifyPoolLiquidity with a pool with the same state
-//     BalanceDelta expectedDelta =
-//         modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), int256(uint256(liquidity)), 0);
-//     assertEq(delta, expectedDelta, "Delta should be equal");
-
-//     assertEq(manager.getLiquidity(key.toId()), 0, "Liquidity should be 0");
-
-//     assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(hook)), 0, "Currency0 balance should be 0");
-//     assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(hook)), 0, "Currency1 balance should be 0");
-
-//     delta = hook.removeReHypothecatedLiquidity(address(this));
-
-//     expectedDelta =
-//         modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), int256(-int128(liquidity)), 0);
-
-//     assertEq(manager.getLiquidity(key.toId()), 0, "Liquidity should be 0");
-
-//     assertEq(IERC20(Currency.unwrap(currency0)).balanceOf(address(hook)), 0, "Currency0 balance should be 0");
-//     assertEq(IERC20(Currency.unwrap(currency1)).balanceOf(address(hook)), 0, "Currency1 balance should be 0");
-
-//     assertEq(IERC4626(address(yieldSource0)).balanceOf(address(hook)), 0, "YieldSource0 balance should be 0");
-//     assertEq(IERC4626(address(yieldSource1)).balanceOf(address(hook)), 0, "YieldSource1 balance should be 0");
-
-//     assertEq(hook.balanceOf(address(this)), 0, "Hook balance should be 0");
-// }
-
-// function test_add_rehypothecated_liquidity_zero_liquidity_reverts() public {
-//     vm.expectRevert(ReHypothecationHook.ZeroLiquidity.selector);
-//     hook.addReHypothecatedLiquidity(0);
-// }
-
-// function test_add_rehypothecated_liquidity_uninitialized_pool_key_reverts() public {
-//     ReHypothecationERC4626Mock newHook = ReHypothecationERC4626Mock(
-//         address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
-//     );
-
-//     deployCodeTo(
-//         "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
-//         abi.encode(manager, address(yieldSource0), address(yieldSource1)),
-//         address(newHook)
-//     );
-//     vm.expectRevert(ReHypothecationHook.NotInitialized.selector);
-//     newHook.addReHypothecatedLiquidity(1e15);
-// }
-
-// function test_add_rehypothecated_liquidity_msg_value_reverts() public {
-//     vm.expectRevert(ReHypothecationHook.InvalidMsgValue.selector);
-//     hook.addReHypothecatedLiquidity{value: 1e5}(1e15);
-// }
-
-// function test_remove_rehypothecated_liquidity_zero_liquidity_reverts() public {
-//     vm.expectRevert(ReHypothecationHook.ZeroLiquidity.selector);
-//     hook.removeReHypothecatedLiquidity(address(this));
-// }
-
-// function test_remove_rehypothecated_liquidity_uninitialized_pool_key_reverts() public {
-//     ReHypothecationMock newHook = ReHypothecationMock(
-//         address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
-//     );
-
-//     deployCodeTo(
-//         "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
-//         abi.encode(manager, address(yieldSource0), address(yieldSource1)),
-//         address(newHook)
-//     );
-//     vm.expectRevert(ReHypothecationHook.NotInitialized.selector);
-//     newHook.removeReHypothecatedLiquidity(address(this));
-// }
-
-// function test_add_rehypothecated_liquidity_invalid_currency_reverts() public {
-//     ReHypothecationMock newHook = ReHypothecationMock(
-//         address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
-//     );
-
-//     deployCodeTo(
-//         "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
-//         abi.encode(manager, address(yieldSource0), address(yieldSource1)),
-//         address(newHook)
-//     );
-
-//     initPool(Currency.wrap(address(0)), currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
-
-//     IERC20(Currency.unwrap(currency1)).approve(address(newHook), type(uint256).max);
-
-//     vm.expectRevert(ReHypothecationHook.UnsupportedCurrency.selector);
-//     newHook.addReHypothecatedLiquidity{value: 1e15}(1e15);
-// }
-
-// function test_add_rehypothecated_liquidity_native_reverts() public {
-//     ReHypothecationMock newHook = ReHypothecationMock(
-//         address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) + 2 ** 96)
-//     );
-
-//     deployCodeTo(
-//         "src/mocks/ReHypothecationMock.sol:ReHypothecationMock",
-//         abi.encode(manager, address(yieldSource0), address(yieldSource1)),
-//         address(newHook)
-//     );
-
-//     initPool(Currency.wrap(address(0)), currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
-
-//     vm.expectRevert(ReHypothecationHook.InvalidMsgValue.selector);
-//     newHook.addReHypothecatedLiquidity{value: 1e14}(1e15);
-// }

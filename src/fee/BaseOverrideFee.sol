@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/BaseOverrideFee.sol)
 
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
-import {BaseHook} from "src/base/BaseHook.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
+// External imports
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
+import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+// Internal imports
+import {BaseHook} from "../base/BaseHook.sol";
 
 /**
  * @dev Base implementation for automatic dynamic fees applied before swaps.
@@ -48,22 +51,20 @@ abstract contract BaseOverrideFee is BaseHook {
     /**
      * @dev Returns a fee, denominated in hundredths of a bip, to be applied to a swap.
      */
-    function _getFee(
-        address sender,
-        PoolKey calldata key,
-        IPoolManager.SwapParams calldata params,
-        bytes calldata hookData
-    ) internal virtual returns (uint24);
+    function _getFee(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
+        internal
+        virtual
+        returns (uint24);
 
     /**
      * @dev Set the fee before the swap is processed using the override fee flag.
      */
-    function _beforeSwap(
-        address sender,
-        PoolKey calldata key,
-        IPoolManager.SwapParams calldata params,
-        bytes calldata hookData
-    ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
+    function _beforeSwap(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
+        internal
+        virtual
+        override
+        returns (bytes4, BeforeSwapDelta, uint24)
+    {
         uint24 fee = _getFee(sender, key, params, hookData);
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, fee | LPFeeLibrary.OVERRIDE_FEE_FLAG);
     }

@@ -1,22 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
-import {BaseCustomCurve} from "src/base/BaseCustomCurve.sol";
-import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+// External imports
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+// Internal imports
+import {BaseCustomCurve} from "../base/BaseCustomCurve.sol";
 
 contract BaseCustomCurveMock is BaseCustomCurve, ERC20 {
     constructor(IPoolManager _manager) BaseCustomCurve(_manager) ERC20("Mock", "MOCK") {}
 
-    function _getUnspecifiedAmount(IPoolManager.SwapParams calldata params)
+    function _getUnspecifiedAmount(SwapParams calldata params)
         internal
         virtual
         override
         returns (uint256 unspecifiedAmount)
     {
+        PoolKey memory poolKey = poolKey();
+
         bool exactInput = params.amountSpecified < 0;
         (Currency specified, Currency unspecified) = (params.zeroForOne == exactInput)
             ? (poolKey.currency0, poolKey.currency1)
@@ -32,7 +37,7 @@ contract BaseCustomCurveMock is BaseCustomCurve, ERC20 {
         );
     }
 
-    function _getSwapFeeAmount(IPoolManager.SwapParams calldata params, uint256 unspecifiedAmount)
+    function _getSwapFeeAmount(SwapParams calldata params, uint256 unspecifiedAmount)
         internal
         virtual
         override

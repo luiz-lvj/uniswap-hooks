@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "forge-std/Test.sol";
-import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {FullMath} from "v4-core/src/libraries/FullMath.sol";
-import {BaseHookFeeMock} from "test/mocks/BaseHookFeeMock.sol";
+import {Test} from "forge-std/Test.sol";
+import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
+import {BaseHookFeeMock} from "src/mocks/BaseHookFeeMock.sol";
+import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 
 contract BaseHookFeeTest is Test, Deployers {
     BaseHookFeeMock hook;
@@ -24,7 +24,7 @@ contract BaseHookFeeTest is Test, Deployers {
         deployMintAndApprove2Currencies();
 
         hook = BaseHookFeeMock(address(uint160(Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG)));
-        deployCodeTo("test/mocks/BaseHookFeeMock.sol:BaseHookFeeMock", abi.encode(manager, hookFee), address(hook));
+        deployCodeTo("src/mocks/BaseHookFeeMock.sol:BaseHookFeeMock", abi.encode(manager, hookFee), address(hook));
 
         (key,) = initPoolAndAddLiquidity(currency0, currency1, IHooks(address(hook)), 3000, SQRT_PRICE_1_1);
         (noHookKey,) = initPoolAndAddLiquidity(currency0, currency1, IHooks(address(0)), 3000, SQRT_PRICE_1_1);
@@ -37,7 +37,7 @@ contract BaseHookFeeTest is Test, Deployers {
         PoolSwapTest.TestSettings memory testSettings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
-        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+        SwapParams memory swapParams = SwapParams({
             zeroForOne: true,
             amountSpecified: -1e18, // exact input
             sqrtPriceLimitX96: MIN_PRICE_LIMIT
@@ -60,7 +60,7 @@ contract BaseHookFeeTest is Test, Deployers {
         PoolSwapTest.TestSettings memory testSettings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
-        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+        SwapParams memory swapParams = SwapParams({
             zeroForOne: true,
             amountSpecified: 1e18, // exact output
             sqrtPriceLimitX96: MIN_PRICE_LIMIT
@@ -83,7 +83,7 @@ contract BaseHookFeeTest is Test, Deployers {
         PoolSwapTest.TestSettings memory testSettings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
-        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+        SwapParams memory swapParams = SwapParams({
             zeroForOne: false,
             amountSpecified: -1e18, // exact input
             sqrtPriceLimitX96: MAX_PRICE_LIMIT
@@ -106,7 +106,7 @@ contract BaseHookFeeTest is Test, Deployers {
         PoolSwapTest.TestSettings memory testSettings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
-        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+        SwapParams memory swapParams = SwapParams({
             zeroForOne: false,
             amountSpecified: 1e18, // exact output
             sqrtPriceLimitX96: MAX_PRICE_LIMIT
@@ -129,13 +129,13 @@ contract BaseHookFeeTest is Test, Deployers {
         PoolSwapTest.TestSettings memory testSettings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
-        IPoolManager.SwapParams memory swapParams1 = IPoolManager.SwapParams({
+        SwapParams memory swapParams1 = SwapParams({
             zeroForOne: true,
             amountSpecified: -1e18, // exact input
             sqrtPriceLimitX96: MIN_PRICE_LIMIT
         });
 
-        IPoolManager.SwapParams memory swapParams2 = IPoolManager.SwapParams({
+        SwapParams memory swapParams2 = SwapParams({
             zeroForOne: false,
             amountSpecified: -1e16, // exact input
             sqrtPriceLimitX96: MAX_PRICE_LIMIT

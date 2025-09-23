@@ -1,19 +1,22 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/base/BaseCustomAccounting.sol)
 
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
-import {BaseHook} from "src/base/BaseHook.sol";
-import {CurrencySettler} from "src/utils/CurrencySettler.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {IUnlockCallback} from "v4-core/src/interfaces/callback/IUnlockCallback.sol";
-import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {IHookEvents} from "src/interfaces/IHookEvents.sol";
+// External imports
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {IUnlockCallback} from "@uniswap/v4-core/src/interfaces/callback/IUnlockCallback.sol";
+import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+// Internal imports
+import {IHookEvents} from "../interfaces/IHookEvents.sol";
+import {BaseHook} from "../base/BaseHook.sol";
+import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
 /**
  * @dev Base implementation for custom accounting and hook-owned liquidity.
@@ -93,13 +96,13 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
 
     struct CallbackData {
         address sender;
-        IPoolManager.ModifyLiquidityParams params;
+        ModifyLiquidityParams params;
     }
 
     /**
      * @notice The hook's pool key.
      */
-    PoolKey public poolKey;
+    PoolKey private _poolKey;
 
     /**
      * @dev Ensure the deadline of a liquidity modification request is not expired.
@@ -117,6 +120,13 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /**
+     * @notice Returns the hook's pool key. Note that this hook works with a single pool key.
+     */
+    function poolKey() public view returns (PoolKey memory) {
+        return _poolKey;
+    }
+
+    /**
      * @notice Adds liquidity to the hook's pool.
      *
      * @dev To cover all possible scenarios, `msg.sender` should have already given the hook an allowance
@@ -130,18 +140,20 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
      * @return delta The principal delta of the liquidity addition.
      */
     function addLiquidity(AddLiquidityParams calldata params)
-        external
+        public
         payable
         virtual
         ensure(params.deadline)
         returns (BalanceDelta delta)
     {
-        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolKey.toId());
+        PoolKey memory key = poolKey();
+
+        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(key.toId());
 
         if (sqrtPriceX96 == 0) revert PoolNotInitialized();
 
         // Revert if msg.value is non-zero but currency0 is not native
-        bool isNative = poolKey.currency0.isAddressZero();
+        bool isNative = key.currency0.isAddressZero();
         if (!isNative && msg.value > 0) revert InvalidNativeValue();
 
         // Get the liquidity modification parameters and the amount of liquidity shares to mint
@@ -169,7 +181,7 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
             if (msg.value < amount0) revert InvalidNativeValue();
 
             // Previous check prevents underflow revert
-            poolKey.currency0.transfer(msg.sender, msg.value - amount0);
+            key.currency0.transfer(msg.sender, msg.value - amount0);
         }
     }
 
@@ -183,12 +195,12 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
      * @return delta The principal delta of the liquidity removal.
      */
     function removeLiquidity(RemoveLiquidityParams calldata params)
-        external
+        public
         virtual
         ensure(params.deadline)
         returns (BalanceDelta delta)
     {
-        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolKey.toId());
+        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolKey().toId());
 
         if (sqrtPriceX96 == 0) revert PoolNotInitialized();
 
@@ -224,9 +236,7 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
         returns (BalanceDelta callerDelta, BalanceDelta feesAccrued)
     {
         (callerDelta, feesAccrued) = abi.decode(
-            poolManager.unlock(
-                abi.encode(CallbackData(msg.sender, abi.decode(params, (IPoolManager.ModifyLiquidityParams))))
-            ),
+            poolManager.unlock(abi.encode(CallbackData(msg.sender, abi.decode(params, (ModifyLiquidityParams))))),
             (BalanceDelta, BalanceDelta)
         );
     }
@@ -238,14 +248,15 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
      * @return returnData The encoded caller and fees accrued deltas.
      */
     function unlockCallback(bytes calldata rawData)
-        external
+        public
         virtual
         override
         onlyPoolManager
         returns (bytes memory returnData)
     {
+        PoolKey memory key = poolKey();
+
         CallbackData memory data = abi.decode(rawData, (CallbackData));
-        PoolKey memory key = poolKey;
 
         // Set the salt value of the liquidity position, which is the keccak256 hash of the sender and salt from the callback data
         // This ensures that each liquidity position is unique and cannot be accessed by other users
@@ -278,7 +289,7 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
         _handleAccruedFees(data, callerDelta, feesAccrued);
 
         emit HookModifyLiquidity(
-            PoolId.unwrap(poolKey.toId()), data.sender, principalDelta.amount0(), principalDelta.amount1()
+            PoolId.unwrap(key.toId()), data.sender, principalDelta.amount0(), principalDelta.amount1()
         );
 
         // Return both deltas so that slippage checks can be done on the principal delta
@@ -287,7 +298,7 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
 
     /**
      * @dev Handle any fees accrued in a liquidity position. By default, this function transfers the tokens to the
-     * owner of the liquidity position. However, this function can be overriden to take fees accrued in the position,
+     * owner of the liquidity position. However, this function can be overridden to take fees accrued in the position,
      * or any other desired logic.
      *
      * @param data The encoded `CallbackData` struct, including the sender and the parameters for the liquidity modification.
@@ -298,28 +309,31 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
         internal
         virtual
     {
+        PoolKey memory key = poolKey();
+
         // Send any accrued fees to the sender
-        poolKey.currency0.take(poolManager, data.sender, uint256(int256(feesAccrued.amount0())), false);
-        poolKey.currency1.take(poolManager, data.sender, uint256(int256(feesAccrued.amount1())), false);
+        key.currency0.take(poolManager, data.sender, uint256(int256(feesAccrued.amount0())), false);
+        key.currency1.take(poolManager, data.sender, uint256(int256(feesAccrued.amount1())), false);
     }
 
     /**
      * @dev Initialize the hook's pool key. The stored key should act immutably so that
      * it can safely be used across the hook's functions.
      */
-    function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
+    function _beforeInitialize(address, PoolKey calldata key, uint160) internal virtual override returns (bytes4) {
         // Check if the pool key is already initialized
-        if (address(poolKey.hooks) != address(0)) revert AlreadyInitialized();
+        if (address(poolKey().hooks) != address(0)) revert AlreadyInitialized();
 
         // Store the pool key to be used in other functions
-        poolKey = key;
+        _poolKey = key;
+
         return this.beforeInitialize.selector;
     }
 
     /**
      * @dev Revert when liquidity is attempted to be added via the `PoolManager`.
      */
-    function _beforeAddLiquidity(address, PoolKey calldata, IPoolManager.ModifyLiquidityParams calldata, bytes calldata)
+    function _beforeAddLiquidity(address, PoolKey calldata, ModifyLiquidityParams calldata, bytes calldata)
         internal
         virtual
         override
@@ -331,12 +345,12 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
     /**
      * @dev Revert when liquidity is attempted to be removed via the `PoolManager`.
      */
-    function _beforeRemoveLiquidity(
-        address,
-        PoolKey calldata,
-        IPoolManager.ModifyLiquidityParams calldata,
-        bytes calldata
-    ) internal virtual override returns (bytes4) {
+    function _beforeRemoveLiquidity(address, PoolKey calldata, ModifyLiquidityParams calldata, bytes calldata)
+        internal
+        virtual
+        override
+        returns (bytes4)
+    {
         revert LiquidityOnlyViaHook();
     }
 

@@ -1,21 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "forge-std/Test.sol";
-import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {BaseAsyncSwapMock} from "test/mocks/BaseAsyncSwapMock.sol";
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
-import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
-import {ProtocolFeeLibrary} from "v4-core/src/libraries/ProtocolFeeLibrary.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {Pool} from "v4-core/src/libraries/Pool.sol";
+import {Test} from "forge-std/Test.sol";
+import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
+import {BaseAsyncSwapMock} from "src/mocks/BaseAsyncSwapMock.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
+import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
+import {ProtocolFeeLibrary} from "@uniswap/v4-core/src/libraries/ProtocolFeeLibrary.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 
 contract BaseAsyncSwapTest is Test, Deployers {
     using StateLibrary for IPoolManager;
@@ -38,7 +37,7 @@ contract BaseAsyncSwapTest is Test, Deployers {
         deployFreshManagerAndRouters();
 
         hook = BaseAsyncSwapMock(address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG)));
-        deployCodeTo("test/mocks/BaseAsyncSwapMock.sol:BaseAsyncSwapMock", abi.encode(manager), address(hook));
+        deployCodeTo("src/mocks/BaseAsyncSwapMock.sol:BaseAsyncSwapMock", abi.encode(manager), address(hook));
 
         deployMintAndApprove2Currencies();
         (key,) = initPoolAndAddLiquidity(
@@ -50,8 +49,8 @@ contract BaseAsyncSwapTest is Test, Deployers {
     }
 
     function test_swap_exactInput_succeeds() public {
-        IPoolManager.SwapParams memory swapParams =
-            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: SQRT_PRICE_1_2});
+        SwapParams memory swapParams =
+            SwapParams({zeroForOne: true, amountSpecified: -100, sqrtPriceLimitX96: SQRT_PRICE_1_2});
         PoolSwapTest.TestSettings memory testSettings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
@@ -71,8 +70,8 @@ contract BaseAsyncSwapTest is Test, Deployers {
     }
 
     function test_swap_exactOutput_succeeds() public {
-        IPoolManager.SwapParams memory swapParams =
-            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_PRICE_1_2});
+        SwapParams memory swapParams =
+            SwapParams({zeroForOne: true, amountSpecified: 100, sqrtPriceLimitX96: SQRT_PRICE_1_2});
         PoolSwapTest.TestSettings memory testSettings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
@@ -93,8 +92,8 @@ contract BaseAsyncSwapTest is Test, Deployers {
     }
 
     function test_swap_exactInput_notZeroForOne_succeeds() public {
-        IPoolManager.SwapParams memory swapParams =
-            IPoolManager.SwapParams({zeroForOne: false, amountSpecified: -100, sqrtPriceLimitX96: SQRT_PRICE_1_2});
+        SwapParams memory swapParams =
+            SwapParams({zeroForOne: false, amountSpecified: -100, sqrtPriceLimitX96: SQRT_PRICE_1_2});
         PoolSwapTest.TestSettings memory testSettings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
@@ -114,8 +113,8 @@ contract BaseAsyncSwapTest is Test, Deployers {
     }
 
     function test_swap_exactOutput_notZeroForOne_succeeds() public {
-        IPoolManager.SwapParams memory swapParams =
-            IPoolManager.SwapParams({zeroForOne: false, amountSpecified: 100, sqrtPriceLimitX96: MAX_PRICE_LIMIT});
+        SwapParams memory swapParams =
+            SwapParams({zeroForOne: false, amountSpecified: 100, sqrtPriceLimitX96: MAX_PRICE_LIMIT});
         PoolSwapTest.TestSettings memory testSettings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
@@ -137,7 +136,7 @@ contract BaseAsyncSwapTest is Test, Deployers {
     function test_swap_fuzz_succeeds(bool zeroForOne, int120 amountSpecified) public {
         vm.assume(amountSpecified != 0);
 
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+        SwapParams memory params = SwapParams({
             zeroForOne: zeroForOne,
             amountSpecified: amountSpecified,
             sqrtPriceLimitX96: zeroForOne ? MIN_PRICE_LIMIT : MAX_PRICE_LIMIT

@@ -1,22 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "forge-std/Test.sol";
-import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {BaseCustomAccountingMock} from "test/mocks/BaseCustomAccountingMock.sol";
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
-import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
+import {Test} from "forge-std/Test.sol";
+import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
+import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {BaseCustomAccounting} from "src/base/BaseCustomAccounting.sol";
-import {ERC20} from "openzeppelin/token/ERC20/ERC20.sol";
-import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
-import {FullMath} from "v4-core/src/libraries/FullMath.sol";
-import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
-import {BaseCustomAccountingFeeMock} from "test/mocks/BaseCustomAccountingFeeMock.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
+import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
+import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
+import {BaseCustomAccountingFeeMock} from "src/mocks/BaseCustomAccountingFeeMock.sol";
+import {BaseCustomAccountingMock} from "src/mocks/BaseCustomAccountingMock.sol";
+import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 
 contract BaseCustomAccountingTest is Test, Deployers {
     using SafeCast for uint256;
@@ -57,7 +59,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
             )
         );
         deployCodeTo(
-            "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(hook)
+            "src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(hook)
         );
 
         deployMintAndApprove2Currencies();
@@ -71,13 +73,13 @@ contract BaseCustomAccountingTest is Test, Deployers {
     }
 
     function test_beforeInitialize_poolKey_succeeds() public view {
-        (Currency _currency0, Currency _currency1, uint24 _fee, int24 _tickSpacing, IHooks _hooks) = hook.poolKey();
+        PoolKey memory key = hook.poolKey();
 
-        assertEq(Currency.unwrap(_currency0), Currency.unwrap(currency0));
-        assertEq(Currency.unwrap(_currency1), Currency.unwrap(currency1));
-        assertEq(_fee, LPFeeLibrary.DYNAMIC_FEE_FLAG);
-        assertEq(_tickSpacing, 60);
-        assertEq(address(_hooks), address(hook));
+        assertEq(Currency.unwrap(key.currency0), Currency.unwrap(currency0));
+        assertEq(Currency.unwrap(key.currency1), Currency.unwrap(currency1));
+        assertEq(key.fee, LPFeeLibrary.DYNAMIC_FEE_FLAG);
+        assertEq(key.tickSpacing, 60);
+        assertEq(address(key.hooks), address(hook));
     }
 
     function test_initialize_already_reverts() public {
@@ -109,7 +111,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         BaseCustomAccountingMock nativeHook =
             BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
-            "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
+            "src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
         );
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -147,7 +149,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         BaseCustomAccountingMock nativeHook =
             BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
-            "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
+            "src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
         );
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -186,7 +188,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         BaseCustomAccountingMock nativeHook =
             BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
-            "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
+            "src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
         );
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -214,8 +216,8 @@ contract BaseCustomAccountingTest is Test, Deployers {
         // Swap to accrue fees
         deal(address(this), 1 ether);
 
-        IPoolManager.SwapParams memory swapParams =
-            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -1 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
+        SwapParams memory swapParams =
+            SwapParams({zeroForOne: true, amountSpecified: -1 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
         PoolSwapTest.TestSettings memory settings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
@@ -235,7 +237,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         BaseCustomAccountingMock nativeHook =
             BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
-            "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
+            "src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
         );
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -261,8 +263,8 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
         // Swap to accrue fees
         deal(address(this), 1 ether);
-        IPoolManager.SwapParams memory swapParams =
-            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -1 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
+        SwapParams memory swapParams =
+            SwapParams({zeroForOne: true, amountSpecified: -1 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
         PoolSwapTest.TestSettings memory settings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
         swapRouter.swap{value: 1 ether}(key, swapParams, settings, ZERO_BYTES);
@@ -283,7 +285,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         BaseCustomAccountingFeeMock nativeHook =
             BaseCustomAccountingFeeMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
-            "test/mocks/BaseCustomAccountingFeeMock.sol:BaseCustomAccountingFeeMock",
+            "src/mocks/BaseCustomAccountingFeeMock.sol:BaseCustomAccountingFeeMock",
             abi.encode(manager),
             address(nativeHook)
         );
@@ -314,8 +316,8 @@ contract BaseCustomAccountingTest is Test, Deployers {
 
         // Swap to accrue fees
         deal(address(this), 1 ether);
-        IPoolManager.SwapParams memory swapParams =
-            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -1 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
+        SwapParams memory swapParams =
+            SwapParams({zeroForOne: true, amountSpecified: -1 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
         PoolSwapTest.TestSettings memory settings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
         swapRouter.swap{value: 1 ether}(key, swapParams, settings, ZERO_BYTES);
@@ -371,8 +373,8 @@ contract BaseCustomAccountingTest is Test, Deployers {
             id, address(swapRouter), -1 ether, 909090909090909090, 72025602285694852357767227579, 10 ether, -1907, 0
         );
 
-        IPoolManager.SwapParams memory params =
-            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -1 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
+        SwapParams memory params =
+            SwapParams({zeroForOne: true, amountSpecified: -1 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
         PoolSwapTest.TestSettings memory settings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
@@ -428,8 +430,8 @@ contract BaseCustomAccountingTest is Test, Deployers {
             );
         }
 
-        IPoolManager.SwapParams memory params =
-            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -10 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
+        SwapParams memory params =
+            SwapParams({zeroForOne: true, amountSpecified: -10 ether, sqrtPriceLimitX96: SQRT_PRICE_1_2});
         PoolSwapTest.TestSettings memory settings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
@@ -473,7 +475,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         BaseCustomAccountingMock nativeHook =
             BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
-            "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
+            "src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
         );
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -536,8 +538,8 @@ contract BaseCustomAccountingTest is Test, Deployers {
             )
         );
 
-        IPoolManager.SwapParams memory params =
-            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 1 ether, sqrtPriceLimitX96: MIN_PRICE_LIMIT});
+        SwapParams memory params =
+            SwapParams({zeroForOne: true, amountSpecified: 1 ether, sqrtPriceLimitX96: MIN_PRICE_LIMIT});
         PoolSwapTest.TestSettings memory settings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
 
@@ -684,7 +686,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         BaseCustomAccountingMock nativeHook =
             BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
-            "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
+            "src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", abi.encode(manager), address(nativeHook)
         );
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -756,8 +758,8 @@ contract BaseCustomAccountingTest is Test, Deployers {
             )
         );
 
-        IPoolManager.SwapParams memory params =
-            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 100 ether, sqrtPriceLimitX96: SQRT_PRICE_1_4});
+        SwapParams memory params =
+            SwapParams({zeroForOne: true, amountSpecified: 100 ether, sqrtPriceLimitX96: SQRT_PRICE_1_4});
 
         PoolSwapTest.TestSettings memory testSettings =
             PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
@@ -792,7 +794,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
             BaseCustomAccounting.AddLiquidityParams(amount, amount, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0))
         );
 
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+        SwapParams memory params = SwapParams({
             zeroForOne: true,
             amountSpecified: (FullMath.mulDiv(amount, 1, 4)).toInt256(),
             sqrtPriceLimitX96: SQRT_PRICE_1_4
@@ -818,7 +820,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         BaseCustomAccountingMock uninitializedHook =
             BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
-            "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock",
+            "src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock",
             abi.encode(manager),
             address(uninitializedHook)
         );
@@ -833,7 +835,7 @@ contract BaseCustomAccountingTest is Test, Deployers {
         BaseCustomAccountingMock uninitializedHook =
             BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
         deployCodeTo(
-            "test/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock",
+            "src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock",
             abi.encode(manager),
             address(uninitializedHook)
         );

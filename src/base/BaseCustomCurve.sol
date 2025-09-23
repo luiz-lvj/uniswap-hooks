@@ -1,18 +1,23 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/base/BaseCustomCurve.sol)
 
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
-import {BaseCustomAccounting} from "src/base/BaseCustomAccounting.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
-import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
-import {CurrencySettler} from "src/utils/CurrencySettler.sol";
-import {BeforeSwapDeltaLibrary, BeforeSwapDelta, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "v4-core/src/types/BalanceDelta.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
+// External imports
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
+import {
+    BeforeSwapDeltaLibrary, BeforeSwapDelta, toBeforeSwapDelta
+} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+// Internal imports
+import {BaseCustomAccounting} from "../base/BaseCustomAccounting.sol";
+import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
 /**
  * @dev Base implementation for custom curves, inheriting from {BaseCustomAccounting}.
@@ -76,13 +81,13 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     }
 
     /**
-     * @dev Overides the default swap logic of the `PoolManager` and calls the {_getUnspecifiedAmount}
+     * @dev Overrides the default swap logic of the `PoolManager` and calls the {_getUnspecifiedAmount}
      * to get the amount of tokens to be sent to the receiver.
      *
      * NOTE: In order to take and settle tokens from the pool, the hook must hold the liquidity added
      * via the {addLiquidity} function.
      */
-    function _beforeSwap(address sender, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
+    function _beforeSwap(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata)
         internal
         virtual
         override
@@ -151,7 +156,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     }
 
     /**
-     * @dev Overides the custom accounting logic to support the custom curve integer amounts.
+     * @dev Overrides the custom accounting logic to support the custom curve integer amounts.
      *
      * @param params The parameters for the liquidity modification, encoded in the
      * {_getAddLiquidity} or {_getRemoveLiquidity} function.
@@ -179,7 +184,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      * @return returnData The encoded caller and fees accrued deltas.
      */
     function unlockCallback(bytes calldata rawData)
-        external
+        public
         virtual
         override
         onlyPoolManager
@@ -187,13 +192,13 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     {
         CallbackDataCustom memory data = abi.decode(rawData, (CallbackDataCustom));
 
-        int128 amount0 = 0;
-        int128 amount1 = 0;
+        int128 amount0;
+        int128 amount1;
 
         // This section handles liquidity modifications (adding/removing) for both tokens in the pool
         // The sign of data.amount0/1 determines if we're removing (-) or adding (+) liquidity
 
-        PoolKey memory _poolKey = poolKey;
+        PoolKey memory _poolKey = poolKey();
 
         // Remove liquidity if amount0 is negative
         if (data.amount0 < 0) {
@@ -235,7 +240,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
             amount1 = -data.amount1;
         }
 
-        emit HookModifyLiquidity(PoolId.unwrap(poolKey.toId()), data.sender, amount0, amount1);
+        emit HookModifyLiquidity(PoolId.unwrap(_poolKey.toId()), data.sender, amount0, amount1);
 
         // Return the encoded caller and fees accrued (zero by default) deltas
         return abi.encode(toBalanceDelta(amount0, amount1), BalanceDeltaLibrary.ZERO_DELTA);
@@ -248,10 +253,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      * @param params The swap parameters.
      * @return unspecifiedAmount The amount of the unspecified currency to be taken or settled.
      */
-    function _getUnspecifiedAmount(IPoolManager.SwapParams calldata params)
-        internal
-        virtual
-        returns (uint256 unspecifiedAmount);
+    function _getUnspecifiedAmount(SwapParams calldata params) internal virtual returns (uint256 unspecifiedAmount);
 
     /**
      * @dev Calculate the amount of fees to be paid to LPs in a swap.
@@ -260,7 +262,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
      * @param unspecifiedAmount The amount of the unspecified currency to be taken or settled.
      * @return swapFeeAmount The amount of fees to be paid to LPs in the swap (in currency0 and currency1).
      */
-    function _getSwapFeeAmount(IPoolManager.SwapParams calldata params, uint256 unspecifiedAmount)
+    function _getSwapFeeAmount(SwapParams calldata params, uint256 unspecifiedAmount)
         internal
         virtual
         returns (uint256 swapFeeAmount);

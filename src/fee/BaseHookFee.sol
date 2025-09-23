@@ -9,14 +9,15 @@ import {BaseHook} from "../base/BaseHook.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
 // external imports
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
-import {FullMath} from "v4-core/src/libraries/FullMath.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
+import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
+import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 
 /**
  * @dev Base implementation to apply fees to a hook. These fees are applied to swap amounts in the unspecified currency.
@@ -47,17 +48,16 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
      * @dev Get the fee to be applied after the swap. Takes the `address` `sender`, a `PoolKey` `key`,
      * the `SwapParams` `params` and `hookData` as arguments and returns the `fee` to be applied.
      */
-    function _getHookFee(
-        address sender,
-        PoolKey calldata key,
-        IPoolManager.SwapParams calldata params,
-        bytes calldata hookData
-    ) internal view virtual returns (uint256);
+    function _getHookFee(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
+        internal
+        view
+        virtual
+        returns (uint256);
 
     /**
      * @dev Withdraws the fees from the hook. Takes the `Currency[]` `currencies` as arguments.
      */
-    function withdrawFees(Currency[] calldata currencies) external virtual;
+    function withdrawFees(Currency[] calldata currencies) public virtual;
 
     /**
      * @dev Hooks into the `afterSwap` hook to apply the hook fee to the unspecified currency.
@@ -65,7 +65,7 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
     function _afterSwap(
         address sender,
         PoolKey calldata key,
-        IPoolManager.SwapParams calldata params,
+        SwapParams calldata params,
         BalanceDelta delta,
         bytes calldata hookData
     ) internal virtual override returns (bytes4, int128) {

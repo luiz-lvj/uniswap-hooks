@@ -72,4 +72,7 @@ contract HookTest is Test, Deployers, IPoolManagerEvents, IHookEvents {
             swap(poolKey, i < 2 ? false : true, i % 2 == 0 ? -int256(amount) : int256(amount), ZERO_BYTES);
         }
     }
+
+    // Exclude from coverage report
+    function test() public {}
 }

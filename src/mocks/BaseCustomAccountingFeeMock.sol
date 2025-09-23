@@ -42,4 +42,7 @@ contract BaseCustomAccountingFeeMock is BaseCustomAccountingMock {
     }
 
     receive() external payable {}
+
+    // Exclude from coverage report
+    function test() public override {}
 }

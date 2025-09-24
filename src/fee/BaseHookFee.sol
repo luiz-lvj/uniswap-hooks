@@ -20,14 +20,15 @@ import {BaseHook} from "../base/BaseHook.sol";
 import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
 /**
- * @dev Base implementation to apply fees to a hook. These fees are applied to swap amounts in the unspecified currency.
- * These fees are independent of the pool's LP fee, charged after the swap and the amount taken as fee are deposited into the hook.
+ * @dev Base implementation for applying hook fees to the unspecified currency of the swap.
+ * These fees are independent of the pool's LP fee and are charged as a percentage of the output
+ * amount after the swap completes.
  *
- * NOTE: It is left to the implementing contract to handle the accumulated hook fees, such as distributing or withdrawing them.
+ * NOTE: It is left to the implementing contract to handle the accumulated hook fees, such as distributing
+ * or withdrawing them via ERC-6909 claims.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
- * not give any warranties and will not be liable for any losses incurred through any use of this code
- * base.
+ * not give any warranties and will not be liable for any losses incurred through any use of this code base.
  *
  * _Available since v1.2.0_
  */
@@ -45,7 +46,8 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
 
     /**
      * @dev Get the fee to be applied after the swap. Takes the `address` `sender`, a `PoolKey` `key`,
-     * the `SwapParams` `params` and `hookData` as arguments and returns the `fee` to be applied.
+     * the `SwapParams` `params`, `BalanceDelta` `delta` and `hookData` as arguments and returns the `fee`
+     * to be applied in hundredths of a bip. i.e. 1000000 = 100%
      */
     function _getHookFee(
         address sender,
@@ -57,6 +59,8 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
 
     /**
      * @dev Hooks into the `afterSwap` hook to apply the hook fee to the unspecified currency.
+     *
+     * NOTE: The fee is calculated as a percentage of the output amount and taken as ERC-6909 claims.
      */
     function _afterSwap(
         address sender,
@@ -81,7 +85,8 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
 
         uint256 feeAmount = FullMath.mulDiv(uint256(unspecifiedAmount.toUint128()), hookFee, MAX_HOOK_FEE);
 
-        // Take the fee amount to the hook as ERC-6909 claims that can be redeemed at any point.
+        // Take the fee amount to the hook as ERC-6909 claims in order to save gas,
+        // which can be redeemed back for tokens with the PoolManager at any point.
         unspecified.take(poolManager, address(this), feeAmount, true);
 
         // Emit the hook fee event with the amounts ordered correctly
@@ -95,7 +100,7 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
     }
 
     /**
-     * @dev Set the hook permissions, specifically {afterSwap} and {afterSwapReturnDelta}.
+     * @dev Returns the hook permissions, specifically enabling {afterSwap} and {afterSwapReturnDelta}.
      *
      * @return permissions The hook permissions.
      */

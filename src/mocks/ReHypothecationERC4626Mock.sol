@@ -17,7 +17,7 @@ import {ReHypothecationHook} from "../general/ReHypothecationHook.sol";
 /// @title ERC4626Mock
 /// @notice A mock implementation of the ERC-4626 yield source.
 contract ERC4626YieldSourceMock is ERC4626 {
-    constructor(IERC20 token, string memory name, string memory symbol) ERC4626(token) ERC20(name, symbol) {}
+    constructor(IERC20 token) ERC4626(token) ERC20("ERC4626YieldSourceMock", "E4626YS") {}
 }
 
 /// @title ReHypothecationERC4626Mock
@@ -25,11 +25,11 @@ contract ERC4626YieldSourceMock is ERC4626 {
 contract ReHypothecationERC4626Mock is ReHypothecationHook {
     using SafeERC20 for IERC20;
 
-    address private _yieldSource0;
-    address private _yieldSource1;
-
     /// @dev Error thrown when attempting to use an unsupported currency.
     error UnsupportedCurrency();
+
+    address private _yieldSource0;
+    address private _yieldSource1;
 
     constructor(IPoolManager poolManager_, address yieldSource0_, address yieldSource1_)
         ReHypothecationHook(poolManager_)
@@ -37,6 +37,16 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
     {
         _yieldSource0 = yieldSource0_;
         _yieldSource1 = yieldSource1_;
+    }
+
+    /// @dev Override to disable native currency, which is not supported by ERC-4626 yield sources.
+    function _beforeInitialize(address sender, PoolKey calldata key, uint160 sqrtPriceX96)
+        internal
+        override
+        returns (bytes4)
+    {
+        if (key.currency0.isAddressZero()) revert UnsupportedCurrency();
+        return super._beforeInitialize(sender, key, sqrtPriceX96);
     }
 
     /// @inheritdoc ReHypothecationHook
@@ -49,9 +59,6 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
 
     /// @inheritdoc ReHypothecationHook
     function _depositToYieldSource(Currency currency, uint256 amount) internal virtual override {
-        // In this ERC4626 implementation, native currency is not supported.
-        if (currency.isAddressZero()) revert UnsupportedCurrency();
-
         address yieldSource = getCurrencyYieldSource(currency);
         if (yieldSource == address(0)) revert UnsupportedCurrency();
 
@@ -74,11 +81,16 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
         return yieldSource.convertToAssets(yieldSourceShares);
     }
 
-    // Helpers for testing
+    /// @dev Helpers for testing
     function getAmountInYieldSource(Currency currency) public view returns (uint256) {
         return _getAmountInYieldSource(currency);
     }
 
     // Exclude from coverage report
     function test() public {}
+
+    /// @dev Override to disable native currency.
+    receive() external payable override {
+        revert UnsupportedCurrency();
+    }
 }

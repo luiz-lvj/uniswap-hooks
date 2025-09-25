@@ -44,15 +44,13 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
  * - The hook dynamically manages pool liquidity based on available yield source assets,
  *   performing JIT provisioning during swaps.
  * - After swaps, assets are deposited back into yield sources to continue earning yield.
- * - Supports both ERC20 tokens and native ETH (with proper override of `_transferFromSenderToHook`).
+ * - Supports both ERC20 tokens and native ETH by default.
  *
  * NOTE: By default, the hook liquidity position is placed in the entire curve range. Override
  * the `getTickLower` and `getTickUpper` functions to customize the position.
  *
  * NOTE: By default, both canonical and rehypothecated liquidity modifications are allowed. Override
  *  `beforeAddLiquidity` and `beforeRemoveLiquidity` to disable canonical liquidity modifications if desired.
- *
- * NOTE: Does not support native currency by default, but can be overridden to do so.
  *
  * WARNING: This hook relies on the PoolManager singleton token reserves for flash accounting during swaps.
  * During `afterSwap`, the hook takes tokens from the PoolManager to settle deltas before users transfer
@@ -85,6 +83,12 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /// @dev Error thrown when attempting to add or remove liquidity with zero shares.
     error ZeroShares();
 
+    /// @dev Error thrown when the message value doesn't match the expected amount for native ETH deposits.
+    error InvalidMsgValue();
+
+    /// @dev Error thrown when the refund fails.
+    error RefundFailed();
+
     /**
      * @dev Emitted when a `sender` adds rehypothecated `shares` to the `poolKey` pool,
      *  transferring `amount0` of `currency0` and `amount1` of `currency1` to the hook.
@@ -116,8 +120,16 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /**
      * @dev Initialize the hook's `poolKey`. The stored key by the hook is unique and
      * should not be modified so that it can safely be used across the hook's lifecycle.
+     *
+     * NOTE: Native ETH is supported by default, which can be disabled by overriding `_beforeInitialize` with:
+     * ```solidity
+     * function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
+     *     if (key.currency0.isAddressZero()) revert UnsupportedCurrency();
+     *     return super._beforeInitialize(key);
+     * }
+     * ```
      */
-    function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
+    function _beforeInitialize(address, PoolKey calldata key, uint160) internal virtual override returns (bytes4) {
         if (address(_poolKey.hooks) != address(0)) revert AlreadyInitialized();
         _poolKey = key;
         return this.beforeInitialize.selector;
@@ -365,11 +377,17 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
 
     /*
      * @dev Transfers the `amount` of `currency` from the `sender` to the hook.
-     *
-     * Can be overridden to handle native currency by verifying the `msg.value` against `amount`.
      */
     function _transferFromSenderToHook(Currency currency, uint256 amount, address sender) internal virtual {
-        IERC20(Currency.unwrap(currency)).safeTransferFrom(sender, address(this), amount);
+        if (!currency.isAddressZero()) {
+            IERC20(Currency.unwrap(currency)).safeTransferFrom(sender, address(this), amount);
+        } else {
+            if (msg.value < amount) revert InvalidMsgValue();
+            if (msg.value > amount) {
+                (bool success,) = msg.sender.call{value: msg.value - amount}("");
+                if (!success) revert RefundFailed();
+            }
+        }
     }
 
     /**
@@ -433,4 +451,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
             afterRemoveLiquidityReturnDelta: false
         });
     }
+
+    /// @dev Allows the hook to receive native ETH from the yield sources.
+    // solhint-disable-next-line
+    receive() external payable virtual {}
 }

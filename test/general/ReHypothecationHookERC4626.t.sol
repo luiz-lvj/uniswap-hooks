@@ -42,11 +42,11 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
         deployFreshManagerAndRouters();
         deployMintAndApprove2Currencies();
 
-        yieldSource0 = IERC4626(new ERC4626YieldSourceMock(IERC20(Currency.unwrap(currency0)), "Yield Source 0", "Y0"));
-        yieldSource1 = IERC4626(new ERC4626YieldSourceMock(IERC20(Currency.unwrap(currency1)), "Yield Source 1", "Y1"));
+        yieldSource0 = IERC4626(new ERC4626YieldSourceMock(IERC20(Currency.unwrap(currency0))));
+        yieldSource1 = IERC4626(new ERC4626YieldSourceMock(IERC20(Currency.unwrap(currency1))));
 
         hook = ReHypothecationERC4626Mock(
-            address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG))
+            payable(address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG)))
         );
         deployCodeTo(
             "src/mocks/ReHypothecationERC4626Mock.sol:ReHypothecationERC4626Mock",
@@ -107,12 +107,26 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
         initPool(currency0, currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
     }
 
+    function test_initialize_native_currency_reverts() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CustomRevert.WrappedError.selector,
+                address(hook),
+                IHooks.beforeInitialize.selector,
+                abi.encodeWithSelector(ReHypothecationERC4626Mock.UnsupportedCurrency.selector),
+                abi.encodeWithSelector(Hooks.HookCallFailed.selector),
+                hex"a9e35b2f"
+            )
+        );
+        initPool(Currency.wrap(address(0)), currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
+    }
+
     // -- ADDING -- //
 
     function test_add_uninitialized_reverts() public {
         uint160 hookFlags = uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG);
         ReHypothecationERC4626Mock newHook = ReHypothecationERC4626Mock(
-            address(hookFlags + 0x10000000000000000000000000000000) // generate a different address
+            payable(address(hookFlags + 0x10000000000000000000000000000000)) // generate a different address
         );
         deployCodeTo(
             "src/mocks/ReHypothecationERC4626Mock.sol:ReHypothecationERC4626Mock",
@@ -244,7 +258,7 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
     function test_remove_uninitialized_reverts() public {
         uint160 hookFlags = uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG);
         ReHypothecationERC4626Mock newHook = ReHypothecationERC4626Mock(
-            address(hookFlags + 0x10000000000000000000000000000000) // generate a different address
+            payable(address(hookFlags + 0x10000000000000000000000000000000)) // generate a different address
         );
         deployCodeTo(
             "src/mocks/ReHypothecationERC4626Mock.sol:ReHypothecationERC4626Mock",

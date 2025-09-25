@@ -44,7 +44,7 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
  * - The hook dynamically manages pool liquidity based on available yield source assets,
  *   performing JIT provisioning during swaps.
  * - After swaps, assets are deposited back into yield sources to continue earning yield.
- * - Supports both ERC20 tokens and native ETH (with proper integration).
+ * - Supports both ERC20 tokens and native ETH (with proper override of `_transferFromSenderToHook`).
  *
  * NOTE: By default, the hook liquidity position is placed in the entire curve range. Override
  * the `getTickLower` and `getTickUpper` functions to customize the position.
@@ -366,7 +366,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /*
      * @dev Transfers the `amount` of `currency` from the `sender` to the hook.
      *
-     * Can be overridden to handle native currency.
+     * Can be overridden to handle native currency by verifying the `msg.value` against `amount`.
      */
     function _transferFromSenderToHook(Currency currency, uint256 amount, address sender) internal virtual {
         IERC20(Currency.unwrap(currency)).safeTransferFrom(sender, address(this), amount);

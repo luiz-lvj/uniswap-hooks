@@ -61,7 +61,6 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
     function _depositToYieldSource(Currency currency, uint256 amount) internal virtual override {
         address yieldSource = getCurrencyYieldSource(currency);
         if (yieldSource == address(0)) revert UnsupportedCurrency();
-
         IERC20(Currency.unwrap(currency)).approve(address(yieldSource), amount);
         IERC4626(yieldSource).deposit(amount, address(this));
     }
@@ -70,7 +69,6 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
     function _withdrawFromYieldSource(Currency currency, uint256 amount) internal virtual override {
         IERC4626 yieldSource = IERC4626(getCurrencyYieldSource(currency));
         if (address(yieldSource) == address(0)) revert UnsupportedCurrency();
-
         yieldSource.withdraw(amount, address(this), address(this));
     }
 
@@ -81,6 +79,11 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
         return yieldSource.convertToAssets(yieldSourceShares);
     }
 
+    /// @dev Override to disable native currency, which is not supported by ERC-4626 yield sources.
+    receive() external payable override {
+        revert UnsupportedCurrency();
+    }
+
     /// @dev Helpers for testing
     function getAmountInYieldSource(Currency currency) public view returns (uint256) {
         return _getAmountInYieldSource(currency);
@@ -88,9 +91,4 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
 
     // Exclude from coverage report
     function test() public {}
-
-    /// @dev Override to disable native currency.
-    receive() external payable override {
-        revert UnsupportedCurrency();
-    }
 }

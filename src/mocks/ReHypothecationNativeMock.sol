@@ -15,8 +15,7 @@ import {ReHypothecationHook} from "../general/ReHypothecationHook.sol";
 import {ERC4626YieldSourceMock} from "./ReHypothecationERC4626Mock.sol";
 
 /// @notice A mock implementation of a native yield source.
-/// NOTE: This mock implementation of a native yield source is for testing purposes only and
-/// may be vulnerable to inflation (and other) kind of attacks, do not use it in production.
+/// NOTE: This mock implementation of a native yield source is for testing purposes only.
 contract NativeYieldSourceMock is ERC20 {
     using Math for *;
 
@@ -88,7 +87,6 @@ contract ReHypothecationNativeMock is ReHypothecationHook {
     function _depositToYieldSource(Currency currency, uint256 amount) internal virtual override {
         address yieldSource = getCurrencyYieldSource(currency);
         if (yieldSource == address(0)) revert UnsupportedCurrency();
-
         if (currency.isAddressZero()) {
             NativeYieldSourceMock(yieldSource).deposit{value: amount}(amount, address(this));
         } else {
@@ -101,7 +99,6 @@ contract ReHypothecationNativeMock is ReHypothecationHook {
     function _withdrawFromYieldSource(Currency currency, uint256 amount) internal virtual override {
         address yieldSource = getCurrencyYieldSource(currency);
         if (address(yieldSource) == address(0)) revert UnsupportedCurrency();
-
         if (currency.isAddressZero()) {
             NativeYieldSourceMock(yieldSource).withdraw(amount, address(this));
         } else {

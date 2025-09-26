@@ -9,6 +9,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Position} from "@uniswap/v4-core/src/libraries/Position.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
@@ -63,7 +64,7 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
  * this code base.
  * _Available since v1.1.0_
  */
-abstract contract ReHypothecationHook is BaseHook, ERC20 {
+abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransient {
     using TransientStateLibrary for IPoolManager;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
@@ -378,7 +379,11 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     /*
      * @dev Transfers the `amount` of `currency` from the `sender` to the hook.
      */
-    function _transferFromSenderToHook(Currency currency, uint256 amount, address sender) internal virtual {
+    function _transferFromSenderToHook(Currency currency, uint256 amount, address sender)
+        internal
+        virtual
+        nonReentrant
+    {
         if (!currency.isAddressZero()) {
             IERC20(Currency.unwrap(currency)).safeTransferFrom(sender, address(this), amount);
         } else {

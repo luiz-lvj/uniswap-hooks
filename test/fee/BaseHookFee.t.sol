@@ -160,7 +160,7 @@ contract BaseHookFeeTest is Test, Deployers {
         uint256 hookCurrency1ClaimsBefore = manager.balanceOf(address(hook), currency1.toId());
 
         vm.prank(withdrawer);
-        hook.withdrawFees(currencies);
+        hook.handleHookFees(currencies);
 
         uint256 balance0After = currency0.balanceOf(withdrawer);
         uint256 balance1After = currency1.balanceOf(withdrawer);

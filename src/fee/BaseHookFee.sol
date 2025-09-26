@@ -39,8 +39,8 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
     /// @dev Fee is higher than the maximum allowed fee.
     error HookFeeTooLarge();
 
-    /// @dev The maximum fee that can be applied to a hook, expressed in hundredths of a bip.
-    uint24 internal constant MAX_HOOK_FEE = 1e6; // 100%
+    /// @dev The maximum fee that can be applied to a hook, expressed in hundredths of a bip (100%)
+    uint24 internal constant MAX_HOOK_FEE = 1e6;
 
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
@@ -98,6 +98,11 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
 
         return (this.afterSwap.selector, feeAmount.toInt128());
     }
+
+    /* 
+    * @dev Must be implemented to handle the accumulated hook fees, such as distributing or withdrawing them via ERC-6909 claims.
+    */
+    function handleHookFees(Currency[] memory currencies) public virtual;
 
     /**
      * @dev Returns the hook permissions, specifically enabling {afterSwap} and {afterSwapReturnDelta}.

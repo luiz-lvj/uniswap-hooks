@@ -27,6 +27,7 @@ contract BaseHookFeeMock is BaseHookFee, AccessControl {
         hookFee = _hookFee;
     }
 
+    /// @inheritdoc BaseHookFee
     function _getHookFee(
         address sender,
         PoolKey calldata key,
@@ -37,10 +38,12 @@ contract BaseHookFeeMock is BaseHookFee, AccessControl {
         return hookFee;
     }
 
-    function withdrawFees(Currency[] calldata currencies) external onlyRole(WITHDRAW_FEES_ROLE) {
+    /// @dev withdraws the hook fees to the sender.
+    function handleHookFees(Currency[] memory currencies) public override onlyRole(WITHDRAW_FEES_ROLE) {
         poolManager.unlock(abi.encode(currencies, msg.sender));
     }
 
+    /// @dev callback from the poolManager to unlock and transfer the hook fees to the sender.
     function unlockCallback(bytes calldata data) external onlyPoolManager returns (bytes memory) {
         (Currency[] memory currencies, address recipient) = abi.decode(data, (Currency[], address));
 

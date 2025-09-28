@@ -1,14 +1,9 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Uniswap Hooks (last updated v0.1.0) (src/fee/BaseHookFee.sol)
 
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
-// internal imports
-import {IHookEvents} from "../interfaces/IHookEvents.sol";
-import {BaseHook} from "../base/BaseHook.sol";
-import {CurrencySettler} from "../utils/CurrencySettler.sol";
-
-// external imports
+// External imports
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
@@ -19,48 +14,53 @@ import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 
+// Internal imports
+import {IHookEvents} from "../interfaces/IHookEvents.sol";
+import {BaseHook} from "../base/BaseHook.sol";
+import {CurrencySettler} from "../utils/CurrencySettler.sol";
+
 /**
- * @dev Base implementation to apply fees to a hook. These fees are applied to swap amounts in the unspecified currency.
- * These fees are independent of the pool's LP fee, charged after the swap and the amount taken as fee are deposited into the hook.
+ * @dev Base implementation for applying hook fees to the unspecified currency of the swap.
+ * These fees are independent of the pool's LP fee and are charged as a percentage of the output
+ * amount after the swap completes.
  *
- * NOTE that this hook can be used by multiple pools and currencies can overlap between them.
- * That's why the `withdrawFees` function takes a `Currency[]` as argument instead of a `PoolKey` for example.
+ * NOTE: It is left to the implementing contract to handle the accumulated hook fees, such as distributing
+ * or withdrawing them via ERC-6909 claims.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
- * not give any warranties and will not be liable for any losses incurred through any use of this code
- * base.
+ * not give any warranties and will not be liable for any losses incurred through any use of this code base.
  *
  * _Available since v1.2.0_
  */
 abstract contract BaseHookFee is BaseHook, IHookEvents {
-    using SafeCast for uint256;
+    using SafeCast for *;
     using CurrencySettler for Currency;
 
-    /// @dev The maximum fee that can be applied to a hook. (100%)
-    uint256 internal constant MAX_FEE = 1e6;
-
     /// @dev Fee is higher than the maximum allowed fee.
-    error FeeTooHigh();
+    error HookFeeTooLarge();
+
+    /// @dev The maximum fee that can be applied to a hook, expressed in hundredths of a bip (100%)
+    uint24 internal constant MAX_HOOK_FEE = 1e6;
 
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /**
      * @dev Get the fee to be applied after the swap. Takes the `address` `sender`, a `PoolKey` `key`,
-     * the `SwapParams` `params` and `hookData` as arguments and returns the `fee` to be applied.
+     * the `SwapParams` `params`, `BalanceDelta` `delta` and `hookData` as arguments and returns the `fee`
+     * to be applied in hundredths of a bip. i.e. 1000000 = 100%
      */
-    function _getHookFee(address sender, PoolKey calldata key, SwapParams calldata params, bytes calldata hookData)
-        internal
-        view
-        virtual
-        returns (uint256);
-
-    /**
-     * @dev Withdraws the fees from the hook. Takes the `Currency[]` `currencies` as arguments.
-     */
-    function withdrawFees(Currency[] calldata currencies) public virtual;
+    function _getHookFee(
+        address sender,
+        PoolKey calldata key,
+        SwapParams calldata params,
+        BalanceDelta delta,
+        bytes calldata hookData
+    ) internal view virtual returns (uint24 fee);
 
     /**
      * @dev Hooks into the `afterSwap` hook to apply the hook fee to the unspecified currency.
+     *
+     * NOTE: The fee is calculated as a percentage of the output amount and taken as ERC-6909 claims.
      */
     function _afterSwap(
         address sender,
@@ -73,27 +73,23 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
             ? (key.currency1, delta.amount1())
             : (key.currency0, delta.amount0());
 
-        if (unspecifiedAmount == 0) {
-            return (this.afterSwap.selector, 0);
-        }
+        if (unspecifiedAmount == 0) return (this.afterSwap.selector, 0);
 
-        if (unspecifiedAmount < 0) {
-            unspecifiedAmount = -unspecifiedAmount;
-        }
+        if (unspecifiedAmount < 0) unspecifiedAmount = -unspecifiedAmount;
 
-        uint256 fee = _getHookFee(sender, key, params, hookData);
+        uint24 hookFee = _getHookFee(sender, key, params, delta, hookData);
 
-        if (fee == 0) return (this.afterSwap.selector, 0);
+        if (hookFee == 0) return (this.afterSwap.selector, 0);
 
-        if (fee > MAX_FEE) revert FeeTooHigh();
+        if (hookFee > MAX_HOOK_FEE) revert HookFeeTooLarge();
 
-        uint256 feeAmount = FullMath.mulDiv(uint256(uint128(unspecifiedAmount)), fee, MAX_FEE);
+        uint256 feeAmount = FullMath.mulDiv(uint256(unspecifiedAmount.toUint128()), hookFee, MAX_HOOK_FEE);
 
-        // Take the fee amount to the hook. Note that having `claims` as false means that the currency will be transferred to the hook
-        // as ERC20 or native tokens, not as a claim.
-        unspecified.take(poolManager, address(this), feeAmount, false);
+        // Take the fee amount to the hook as ERC-6909 claims in order to save gas,
+        // which can be redeemed back for tokens with the PoolManager at any point.
+        unspecified.take(poolManager, address(this), feeAmount, true);
 
-        // Emit the swap event with the amounts ordered correctly
+        // Emit the hook fee event with the amounts ordered correctly
         if (unspecified == key.currency0) {
             emit HookFee(PoolId.unwrap(key.toId()), sender, feeAmount.toUint128(), 0);
         } else {
@@ -103,8 +99,13 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
         return (this.afterSwap.selector, feeAmount.toInt128());
     }
 
+    /* 
+    * @dev Must be implemented to handle the accumulated hook fees, such as distributing or withdrawing them via ERC-6909 claims.
+    */
+    function handleHookFees(Currency[] memory currencies) public virtual;
+
     /**
-     * @dev Set the hook permissions, specifically {afterSwap} and {afterSwapReturnDelta}.
+     * @dev Returns the hook permissions, specifically enabling {afterSwap} and {afterSwapReturnDelta}.
      *
      * @return permissions The hook permissions.
      */

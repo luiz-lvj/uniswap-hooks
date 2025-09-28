@@ -85,5 +85,5 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
     }
 
     // Exclude from coverage report
-    function test() public {}
+    function test() public virtual {}
 }

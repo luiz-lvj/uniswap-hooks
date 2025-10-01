@@ -99,7 +99,7 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         // since the ataccker is the only LP, himself is the recipient of the whole donation in the hooked pool
         BalanceDelta hookFeeDeltaAfterRemoval =
             calculateFeeDelta(manager, key.toId(), address(modifyLiquidityRouter), -600, 600, bytes32(0));
-        assertAproxEqAbs(hookFeeDeltaAfterRemoval, feeDelta, 1, "Hooked: Attacker received donation");
+        assertApproxEqAbs(hookFeeDeltaAfterRemoval, feeDelta, 1, "Hooked: Attacker received donation");
 
         // in the unhooked pool, the attacker should have collected the fees during liquidity removal
         BalanceDelta noHookFeeDeltaAfterRemoval =
@@ -278,7 +278,7 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         BalanceDelta hookDeltaBobRemoval = modifyPoolLiquidity(key, -600, 600, -1e14, bobSalt);
         BalanceDelta noHookDeltaBobRemoval = modifyPoolLiquidity(noHookKey, -600, 600, -1e14, bobSalt);
 
-        assertAproxEqAbs(
+        assertApproxEqAbs(
             hookDeltaBobRemoval,
             noHookDeltaBobRemoval + feeDelta + feeDelta,
             1,

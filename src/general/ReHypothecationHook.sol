@@ -385,11 +385,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
     /*
      * @dev Transfers the `amount` of `currency` from the `sender` to the hook.
      */
-    function _transferFromSenderToHook(Currency currency, uint256 amount, address sender)
-        internal
-        virtual
-        nonReentrant
-    {
+    function _transferFromSenderToHook(Currency currency, uint256 amount, address sender) internal virtual {
         if (!currency.isAddressZero()) {
             IERC20(Currency.unwrap(currency)).safeTransferFrom(sender, address(this), amount);
         } else {

@@ -3,22 +3,16 @@
 
 pragma solidity ^0.8.24;
 
-// Internal imports
-import {BaseHook} from "../base/BaseHook.sol";
-import {CurrencySettler} from "../utils/CurrencySettler.sol";
-import {LiquidityMath} from "../utils/LiquidityMath.sol";
-
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
 // External imports
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Position} from "@uniswap/v4-core/src/libraries/Position.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
-import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {TransientStateLibrary} from "@uniswap/v4-core/src/libraries/TransientStateLibrary.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
@@ -27,67 +21,90 @@ import {BalanceDelta, toBalanceDelta} from "@uniswap/v4-core/src/types/BalanceDe
 import {SwapParams, ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
-
-import {LiquidityAmounts} from "@uniswap/v4-periphery/src/libraries/LiquidityAmounts.sol";
+import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
+import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
+// Internal imports
+import {BaseHook} from "../base/BaseHook.sol";
+import {CurrencySettler} from "../utils/CurrencySettler.sol";
 
 /**
  * @dev A Uniswap V4 hook that enables rehypothecation of liquidity positions.
  *
- * This hook allows users to deposit assets into yield-generating protocols (like ERC4626 vaults)
- * while maintaining the ability to provide liquidity to Uniswap pools. The hook acts as an
- * intermediary that manages the relationship between yield sources and pool liquidity.
+ * This hook allows users to deposit assets into yield-generating sources (e.g., ERC-4626 vaults)
+ * while providing liquidity to Uniswap pools Just-in-Time (JIT) during swaps. Assets earn yield
+ * when idle and are temporarily injected as pool liquidity only when needed for swap execution,
+ * then immediately withdrawn back to yield sources.
+ *
+ * Conceptually, the hook acts as an intermediary that manages:
+ * - the user-facing ERC20 share token (representing rehypothecated positions), and
+ * - the underlying relationship between yield sources and pool liquidity.
  *
  * Key features:
- * - Users can add rehypothecated liquidity by depositing assets into yield sources
- * - The hook dynamically manages pool liquidity based on available yield source assets
- * - Supports both ERC20 tokens and native ETH (with proper implementation)
- * - Implements ERC20 for representing user shares of the rehypothecated position
+ * - Users can deposit assets into yield sources via the hook and receive ERC20 shares
+ *   that represent their rehypothecated liquidity position.
+ * - The hook dynamically manages pool liquidity based on available yield source assets,
+ *   performing JIT provisioning during swaps.
+ * - After swaps, assets are deposited back into yield sources to continue earning yield.
+ * - Supports both ERC20 tokens and native ETH by default.
  *
- * WARNING: This is experimental software and is provided on an "as is" and "as available" basis. We do
- * not give any warranties and will not be liable for any losses incurred through any use of this code
- * base.
+ * NOTE: By default, the hook liquidity position is placed in the entire curve range. Override
+ * the `getTickLower` and `getTickUpper` functions to customize the position.
+ *
+ * NOTE: By default, both canonical and rehypothecated liquidity modifications are allowed. Override
+ *  `beforeAddLiquidity` and `beforeRemoveLiquidity` to disable canonical liquidity modifications if desired.
+ *
+ * WARNING: This hook relies on the PoolManager singleton token reserves for flash accounting during swaps.
+ * During `afterSwap`, the hook takes tokens from the PoolManager to settle deltas before users transfer
+ * their swap tokens. The PoolManager may lack sufficient reserves for illiquid tokens, preventing
+ * swaps until the PoolManager accumulates enough tokens for these small flash loans. This can be mitigated by
+ * maintaining some permanent pool liquidity alongside rehypothecated liquidity.
+ *
+ * WARNING: This is experimental software and is provided on an "as is" and "as available" basis.
+ * We do not give any warranties and will not be liable for any losses incurred through any use of
+ * this code base.
  * _Available since v1.1.0_
  */
-abstract contract ReHypothecationHook is BaseHook, ERC20 {
+abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransient {
     using TransientStateLibrary for IPoolManager;
     using StateLibrary for IPoolManager;
     using CurrencySettler for Currency;
-    using SafeERC20 for IERC20;
     using SafeCast for *;
+    using Math for uint256;
+    using SafeERC20 for IERC20;
 
-    /// @dev The pool key for the hook. Note that the hook only allows one key.
+    /// @dev The pool key for the hook. Note that the hook supports only one pool key.
     PoolKey private _poolKey;
 
-    /// @dev Error thrown when attempting to add or remove zero liquidity.
-    error ZeroLiquidity();
-
-    /// @dev Error thrown when trying to initialize a pool key that has already been set.
+    /// @dev Error thrown when trying to initialize a pool that has already been initialized.
     error AlreadyInitialized();
 
-    /// @dev Error thrown when attempting to use the hook before the pool key has been initialized.
-    error PoolKeyNotInitialized();
+    /// @dev Error thrown when attempting to interact with a pool that has not been initialized.
+    error NotInitialized();
+
+    /// @dev Error thrown when attempting to add or remove liquidity with zero shares.
+    error ZeroShares();
 
     /// @dev Error thrown when the message value doesn't match the expected amount for native ETH deposits.
     error InvalidMsgValue();
 
-    /// @dev Error thrown when a refund of excess ETH fails.
+    /// @dev Error thrown when the refund fails.
     error RefundFailed();
 
-    /// @dev Error thrown when the calculated amounts for liquidity operations are invalid.
-    error InvalidAmounts();
-
-    /// @dev Error thrown when attempting to use an unsupported currency type.
-    error InvalidCurrency();
+    /**
+     * @dev Emitted when a `sender` adds rehypothecated `shares` to the `poolKey` pool,
+     *  transferring `amount0` of `currency0` and `amount1` of `currency1` to the hook.
+     */
+    event ReHypothecatedLiquidityAdded(
+        address indexed sender, PoolKey indexed poolKey, uint256 shares, uint256 amount0, uint256 amount1
+    );
 
     /**
-     * @dev Emitted when an `sender` adds rehypothecated liquidity to the pool, transferring `amount0` of `currency0` and `amount1` of `currency1` to the hook.
+     * @dev Emitted when a `sender` removes rehypothecated `liquidity` from the `poolKey` pool,
+     *  receiving `amount0` of `currency0` and `amount1` of `currency1` from the hook.
      */
-    event ReHypothecatedLiquidityAdded(address indexed sender, uint128 liquidity, uint256 amount0, uint256 amount1);
-
-    /**
-     * @dev Emitted when an `sender` removes rehypothecated liquidity from the pool, receiving `amount0` of `currency0` and `amount1` of `currency1` from the hook.
-     */
-    event ReHypothecatedLiquidityRemoved(address indexed sender, uint128 liquidity, uint256 amount0, uint256 amount1);
+    event ReHypothecatedLiquidityRemoved(
+        address indexed sender, PoolKey indexed poolKey, uint256 shares, uint256 amount0, uint256 amount1
+    );
 
     /**
      * @dev Sets the `PoolManager` address.
@@ -95,127 +112,129 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /**
-     * @dev Adds rehypothecated `liquidity` to the pool, retunns the caller's `delta`, and mints ERC20 shares to them.
-     *
-     * This function calculates the required amounts of both currencies based on the desired liquidity,
-     * transfers the assets from the user, deposits them into yield sources, and mints shares
-     * representing the user's position.
-     *
-     * Note: This function can only be called once the pool is initialized, reverting with `PoolKeyNotInitialized` otherwise.
-     * The hook might accept native currency, in which case the function `_depositOnYieldSource` must be implemented to handle it.
+     * @dev Returns the `poolKey` for the hook pool.
      */
-    function addReHypothecatedLiquidity(uint128 liquidity) external payable returns (BalanceDelta delta) {
-        if (_poolKey.currency1.isAddressZero()) revert PoolKeyNotInitialized();
-
-        if (liquidity == 0) revert ZeroLiquidity();
-
-        delta = _getDeltaForDepositedShares(liquidity);
-
-        uint256 amount0 = int256(-delta.amount0()).toUint256();
-        uint256 amount1 = int256(-delta.amount1()).toUint256();
-
-        if (_poolKey.currency0.isAddressZero()) {
-            if (msg.value < amount0) revert InvalidMsgValue();
-            uint256 refund = msg.value - amount0;
-            if (refund > 0) {
-                (bool success,) = msg.sender.call{value: refund}("");
-                if (!success) revert RefundFailed();
-            }
-        } else {
-            if (msg.value > 0) {
-                revert InvalidMsgValue();
-            }
-            IERC20(Currency.unwrap(_poolKey.currency0)).safeTransferFrom(msg.sender, address(this), amount0);
-        }
-        IERC20(Currency.unwrap(_poolKey.currency1)).safeTransferFrom(msg.sender, address(this), amount1);
-
-        _depositOnYieldSource(_poolKey.currency0, amount0);
-        _depositOnYieldSource(_poolKey.currency1, amount1);
-
-        _mint(msg.sender, liquidity);
-
-        emit ReHypothecatedLiquidityAdded(msg.sender, liquidity, amount0, amount1);
+    function getPoolKey() public view returns (PoolKey memory poolKey) {
+        return _poolKey;
     }
 
     /**
-     * @dev Removes all rehypothecated liquidity for a given owner and burns their shares.
+     * @dev Initialize the hook's `poolKey`. The stored key by the hook is unique and
+     * should not be modified so that it can safely be used across the hook's lifecycle.
      *
-     * This function calculates the proportional amounts of both currencies based on the owner's
-     * share balance, withdraws assets from yield sources, and transfers them to the owner.
-     *
-     * The owner parameter specifies the address of the user whose liquidity will be removed.
-     * The function returns a balance delta representing the assets withdrawn from the hook.
-     *
-     * Requirements:
-     * - Pool must be initialized
-     * - Owner must have a positive share balance
-     *
-     * Note: This function removes ALL liquidity for the owner. For partial withdrawals,
-     * consider implementing a separate function or using standard ERC20 transfer mechanisms.
+     * NOTE: Native ETH is supported by default, which can be disabled by overriding `_beforeInitialize` with:
+     * ```solidity
+     * function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
+     *     if (key.currency0.isAddressZero()) revert UnsupportedCurrency();
+     *     return super._beforeInitialize(key);
+     * }
+     * ```
      */
-    function removeReHypothecatedLiquidity(address owner) external returns (BalanceDelta delta) {
-        if (_poolKey.currency1.isAddressZero()) revert PoolKeyNotInitialized();
-
-        uint256 sharesAmount = balanceOf(owner);
-        if (sharesAmount == 0) revert ZeroLiquidity();
-
-        delta = _getDeltaForWithdrawnShares(sharesAmount);
-
-        uint256 amount0 = int256(delta.amount0()).toUint256();
-        uint256 amount1 = int256(delta.amount1()).toUint256();
-
-        _burn(owner, sharesAmount);
-
-        _withdrawFromYieldSource(_poolKey.currency0, amount0);
-        _withdrawFromYieldSource(_poolKey.currency1, amount1);
-
-        _poolKey.currency0.transfer(owner, amount0);
-        _poolKey.currency1.transfer(owner, amount1);
-
-        emit ReHypothecatedLiquidityRemoved(owner, uint128(sharesAmount), amount0, amount1);
-    }
-
-    /**
-     * @dev Initialize the hook's pool key. The stored key should act immutably so that
-     * it can safely be used across the hook's functions.
-     */
-    function _beforeInitialize(address, PoolKey calldata key, uint160) internal override returns (bytes4) {
-        // Check if the pool key is already initialized
+    function _beforeInitialize(address, PoolKey calldata key, uint160) internal virtual override returns (bytes4) {
         if (address(_poolKey.hooks) != address(0)) revert AlreadyInitialized();
-
-        // Store the pool key to be used in other functions
         _poolKey = key;
         return this.beforeInitialize.selector;
     }
 
     /**
-     * @dev Hook executed before a swap operation to provide liquidity from rehypothecated assets.
-     * This function gets the amount of liquidity to be provided from yield sources and temporarily
-     * adds it to the pool, in a Just-in-Time provision of liquidity.
-     * Note that at this point there's no really transfer of tokens to the pool, this addition of liquidity
-     * creates a currencyDelta to the hook, which must be settled in the `_afterSwap` function.
+     * @dev Adds rehypothecated liquidity to yield sources and mints shares to the caller.
+     *
+     * Liquidity is added in the ratio determined by the hook's existing balances in yield sources.
+     * Assets are deposited into yield sources where they earn returns when idle and can be
+     * dynamically used as pool liquidity during swaps.
+     *
+     * Returns a balance `delta` representing the assets deposited into the hook.
+     *
+     * Requirements:
+     * - Pool must be initialized
+     * - Sender must have sufficient token balances
+     * - Sender must have approved the hook to spend the required tokens
      */
-    function _beforeSwap(address, /* sender */ PoolKey calldata key, SwapParams calldata params, bytes calldata)
-        internal
+    function addReHypothecatedLiquidity(uint256 shares)
+        public
+        payable
         virtual
-        override
-        returns (bytes4, BeforeSwapDelta, uint24)
+        nonReentrant
+        returns (BalanceDelta delta)
     {
-        // Get the amount of liquidity to be provided from yield sources
-        uint128 liquidityToUse = _getLiquidityToUse(key, params);
+        if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
+        if (shares == 0) revert ZeroShares();
 
-        // If there's liquidity to be provided, add it to the pool (in a Just-in-Time provision of liquidity)
-        if (liquidityToUse > 0) {
-            _modifyLiquidity(liquidityToUse.toInt256());
-        }
+        (uint256 amount0, uint256 amount1) = _convertSharesToAmounts(shares);
+
+        _transferFromSenderToHook(_poolKey.currency0, amount0, msg.sender);
+        _transferFromSenderToHook(_poolKey.currency1, amount1, msg.sender);
+
+        _depositToYieldSource(_poolKey.currency0, amount0);
+        _depositToYieldSource(_poolKey.currency1, amount1);
+
+        _mint(msg.sender, shares);
+
+        emit ReHypothecatedLiquidityAdded(msg.sender, _poolKey, shares, amount0, amount1);
+
+        return toBalanceDelta(-int256(amount0).toInt128(), -int256(amount1).toInt128());
+    }
+
+    /**
+     * @dev Removes rehypothecated liquidity from yield sources and burns caller's shares.
+     *
+     * Liquidity is withdrawn in the ratio determined by the hook's existing balances in yield sources.
+     * Assets are withdrawn from yield sources where they were generating yield, allowing users to
+     * exit their rehypothecated position and reclaim their underlying tokens.
+     *
+     * Returns a balance `delta` representing the assets withdrawn from the hook.
+     *
+     * Requirements:
+     * - Pool must be initialized
+     * - Sender must have sufficient shares for the desired liquidity withdrawal
+     */
+    function removeReHypothecatedLiquidity(uint256 shares) public virtual nonReentrant returns (BalanceDelta delta) {
+        if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
+        if (shares == 0) revert ZeroShares();
+
+        (uint256 amount0, uint256 amount1) = _convertSharesToAmounts(shares);
+
+        _burn(msg.sender, shares);
+
+        _withdrawFromYieldSource(_poolKey.currency0, amount0);
+        _withdrawFromYieldSource(_poolKey.currency1, amount1);
+
+        _transferFromHookToSender(_poolKey.currency0, amount0, msg.sender);
+        _transferFromHookToSender(_poolKey.currency1, amount1, msg.sender);
+
+        emit ReHypothecatedLiquidityRemoved(msg.sender, _poolKey, shares, amount0, amount1);
+
+        return toBalanceDelta(int256(amount0).toInt128(), int256(amount1).toInt128());
+    }
+
+    /**
+     * @dev Hook executed before a swap operation to provide liquidity from rehypothecated assets.
+     *
+     * Gets the amount of liquidity to be provided from yield sources and temporarily adds it to the pool,
+     * in a Just-in-Time provision of liquidity.
+     *
+     * Note that at this point there are no actual transfers of tokens happening to the pool, instead,
+     * thanks to the Flash Accounting model, this addition creates a currencyDelta to the hook, which
+     * must be settled during the `_afterSwap` function before locking the poolManager again.
+     */
+    function _beforeSwap(
+        address, /* sender */
+        PoolKey calldata, /* key */
+        SwapParams calldata, /* params */
+        bytes calldata /* hookData */
+    ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
+        // Get the liquidity to be used from the amounts currently deposited in the yield sources
+        uint256 liquidityToUse = _getLiquidityToUse();
+        if (liquidityToUse > 0) _modifyLiquidity(liquidityToUse.toInt256());
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
     /**
      * @dev Hook executed after a swap operation to remove temporary liquidity and rebalance assets.
-     * This function removes the liquidity that was temporarily added in `_beforeSwap`, and
-     * asserts the hook's deltas in each currency in order to zero them.
+     *
+     * Removes the liquidity that was temporarily added in `_beforeSwap`, and resolves the hook's
+     * deltas in each currency in order to neutralize any pending debits or credits.
      */
     function _afterSwap(
         address, /* sender */
@@ -224,23 +243,113 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         BalanceDelta, /* delta */
         bytes calldata /* hookData */
     ) internal virtual override returns (bytes4, int128) {
-        // Get the hook owned liquidity currently in the pool
-        uint128 liquidity = _getHookLiquidity(key);
-        if (liquidity == 0) {
-            return (this.afterSwap.selector, 0);
-        }
         // Remove all of the hook owned liquidity from the pool
-        _modifyLiquidity(-liquidity.toInt256());
+        uint128 liquidity = _getHookPositionLiquidity();
+        if (liquidity > 0) {
+            _modifyLiquidity(-liquidity.toInt256());
 
-        // Assert the hook's deltas in each currency in order to zero them
-        _assertHookDelta(key.currency0);
-        _assertHookDelta(key.currency1);
+            // Take or settle any pending deltas with the PoolManager
+            _resolveHookDelta(key.currency0);
+            _resolveHookDelta(key.currency1);
+        }
 
         return (this.afterSwap.selector, 0);
     }
 
     /**
+     * @dev Takes or settles any pending `currencyDelta` amount with the poolManager,
+     * neutralizing the Flash Accounting deltas before locking the poolManager again.
+     */
+    function _resolveHookDelta(Currency currency) internal virtual {
+        int256 currencyDelta = poolManager.currencyDelta(address(this), currency);
+        if (currencyDelta > 0) {
+            currency.take(poolManager, address(this), currencyDelta.toUint256(), false);
+            _depositToYieldSource(currency, currencyDelta.toUint256());
+        }
+        if (currencyDelta < 0) {
+            _withdrawFromYieldSource(currency, (-currencyDelta).toUint256());
+            currency.settle(poolManager, address(this), (-currencyDelta).toUint256(), false);
+        }
+    }
+
+    /**
+     * @dev Preview the amounts of currency0 and currency1 required/obtained for a given amount of shares.
+     */
+    function previewAmountsForShares(uint256 shares) public view virtual returns (uint256 amount0, uint256 amount1) {
+        return _convertSharesToAmounts(shares);
+    }
+
+    /**
+     * @dev Calculates the amounts of currency0 and currency1 required for adding a specific amount of shares.
+     *
+     * If the hook has not emitted shares yet, the initial deposit ratio is determined by the current pool price.
+     * Otherwise, it is determined by ratio of the hook balances in the yield sources.
+     */
+    function _convertSharesToAmounts(uint256 shares) internal view virtual returns (uint256 amount0, uint256 amount1) {
+        // If the hook has not emitted shares yet, then consider `liquidity == shares`
+        if (totalSupply() == 0) {
+            (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
+            return LiquidityAmounts.getAmountsForLiquidity(
+                currentSqrtPriceX96,
+                TickMath.getSqrtPriceAtTick(getTickLower()),
+                TickMath.getSqrtPriceAtTick(getTickUpper()),
+                shares.toUint128()
+            );
+        }
+        // If the hook has shares, then deposit proportionally to the hook balances in the yield sources
+        else {
+            amount0 = _shareToAmount(shares, _poolKey.currency0);
+            amount1 = _shareToAmount(shares, _poolKey.currency1);
+        }
+    }
+
+    /**
+     * @dev Converts a given `shares` amount to the corresponding `currency` amount.
+     */
+    function _shareToAmount(uint256 shares, Currency currency) internal view virtual returns (uint256 amount) {
+        uint256 totalAmount = _getAmountInYieldSource(currency);
+        if (totalAmount == 0) return 0;
+        return FullMath.mulDiv(shares, totalAmount, totalSupply());
+    }
+
+    /**
+     * @dev Returns the `liquidity` to be provided just-in-time for incoming swaps.
+     *
+     * By default, returns the maximum liquidity that can be provided with the current
+     * balances of the hook in the yield sources.
+     *
+     * NOTE: Since liquidity is provided and withdrawn transiently during flash accounting, it
+     * can be virtually inflated for performing "leveraged liquidity" strategies, which would
+     * give better pricing to swappers at the cost of the profitability of LP's and increased risks.
+     */
+    function _getLiquidityToUse() internal view virtual returns (uint256) {
+        (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
+        return LiquidityAmounts.getLiquidityForAmounts(
+            currentSqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(getTickLower()),
+            TickMath.getSqrtPriceAtTick(getTickUpper()),
+            _getAmountInYieldSource(_poolKey.currency0),
+            _getAmountInYieldSource(_poolKey.currency1)
+        );
+    }
+
+    /**
+     * @dev Retrieves the current `liquidity` of the hook owned liquidity position in the `_poolKey` pool.
+     *
+     * NOTE: Given that just-in-time liquidity provisioning is performed, this function will only return values
+     * larger than zero between `beforeSwap` and `afterSwap`, where the liquidity is actually inside the pool.
+     * It will return zero in any other point in the hook lifecycle. For determining the hook balances in any other point,
+     * use `_getAmountInYieldSource`.
+     */
+    function _getHookPositionLiquidity() internal view virtual returns (uint128 liquidity) {
+        bytes32 positionKey = Position.calculatePositionKey(address(this), getTickLower(), getTickUpper(), bytes32(0));
+        return poolManager.getPositionLiquidity(_poolKey.toId(), positionKey);
+    }
+
+    /**
      * @dev Returns the lower tick boundary for the hook's liquidity position.
+     *
+     * Can be overridden to customize the tick boundary.
      */
     function getTickLower() public view virtual returns (int24) {
         return TickMath.minUsableTick(_poolKey.tickSpacing);
@@ -248,94 +357,16 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
 
     /**
      * @dev Returns the upper tick boundary for the hook's liquidity position.
+     *
+     * Can be overridden to customize the tick boundary.
      */
     function getTickUpper() public view virtual returns (int24) {
         return TickMath.maxUsableTick(_poolKey.tickSpacing);
     }
 
     /**
-     * @dev Calculates the balance delta required for adding a specific amount of liquidity.
-     *
-     * This function uses the current pool state and desired liquidity to determine
-     * the exact amounts of both currencies needed to achieve the target liquidity.
-     *
-     * The liquidity parameter specifies the amount of liquidity to add.
-     * The function returns a balance delta representing the required currency amounts.
-     *
-     * Requirements:
-     * - The calculated amounts must be negative (assets flowing into the hook)
-     */
-    function _getDeltaForDepositedShares(uint128 liquidity) internal virtual returns (BalanceDelta delta) {
-        int24 tickLower = getTickLower();
-        int24 tickUpper = getTickUpper();
-
-        (uint160 currentSqrtPriceX96, int24 currentTick,,) = poolManager.getSlot0(_poolKey.toId());
-
-        delta =
-            LiquidityMath.calculateDeltaForLiquidity(liquidity, currentTick, tickLower, tickUpper, currentSqrtPriceX96);
-
-        if (delta.amount0() > 0 || delta.amount1() > 0) {
-            revert InvalidAmounts();
-        }
-    }
-
-    /**
-     * @dev Calculates the balance delta for withdrawing a specific amount of shares.
-     *
-     * This function determines the proportional amounts of both currencies that should
-     * be withdrawn based on the user's share balance relative to the total supply.
-     *
-     * The sharesAmount parameter specifies the amount of shares to withdraw.
-     * The function returns a balance delta representing the currency amounts to withdraw.
-     */
-    function _getDeltaForWithdrawnShares(uint256 sharesAmount) internal virtual returns (BalanceDelta delta) {
-        address yieldSource0 = getYieldSourceForCurrency(_poolKey.currency0);
-        address yieldSource1 = getYieldSourceForCurrency(_poolKey.currency1);
-
-        uint256 totalSharesCurrency0 = IERC4626(yieldSource0).maxWithdraw(address(this));
-        uint256 totalSharesCurrency1 = IERC4626(yieldSource1).maxWithdraw(address(this));
-
-        uint256 amount0 = FullMath.mulDiv(sharesAmount, totalSharesCurrency0, totalSupply());
-        uint256 amount1 = FullMath.mulDiv(sharesAmount, totalSharesCurrency1, totalSupply());
-
-        delta = toBalanceDelta(int256(amount0).toInt128(), int256(amount1).toInt128());
-    }
-
-    /**
-     * @dev Returns the yield source address for a given currency.
-     */
-    function getYieldSourceForCurrency(Currency currency) public view virtual returns (address);
-
-    /**
-     * @dev Deposits a specified amount of a currency into its corresponding yield source.
-     *
-     * Note: For native ETH support, this function should be overridden to handle
-     * the specific requirements of the yield source.
-     */
-    function _depositOnYieldSource(Currency currency, uint256 amount) internal virtual {
-        // In this implementation with ERC4626, native currency is not supported
-        if (currency.isAddressZero()) {
-            revert InvalidCurrency();
-        }
-        address yieldSource = getYieldSourceForCurrency(currency);
-        IERC20(Currency.unwrap(currency)).approve(yieldSource, amount);
-        IERC4626(yieldSource).deposit(amount, address(this));
-    }
-
-    /**
-     * @dev Withdraws a specified amount of a currency from its corresponding yield source.
-     *
-     * This function withdraws assets from the yield source and returns them to the hook
-     * for further processing (e.g., transferring to users or adding to pool liquidity).
-     */
-    function _withdrawFromYieldSource(Currency currency, uint256 amount) internal virtual {
-        address yieldSource = getYieldSourceForCurrency(currency);
-        IERC4626(yieldSource).withdraw(amount, address(this), address(this));
-    }
-
-    /**
      * @dev Modifies the hook's liquidity position in the pool.
-     * This function adds or removes liquidity from the hook's position using the pool manager.
+     *
      * Positive liquidityDelta adds liquidity, while negative removes it.
      */
     function _modifyLiquidity(int256 liquidityDelta) internal virtual returns (BalanceDelta delta) {
@@ -351,72 +382,66 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
         );
     }
 
-    /**
-     * @dev Retrieves the current liquidity of the hook owned position in the pool based on its `key`
+    /*
+     * @dev Transfers the `amount` of `currency` from the `sender` to the hook.
      */
-    function _getHookLiquidity(PoolKey calldata key) internal virtual returns (uint128 liquidity) {
-        bytes32 positionKey = Position.calculatePositionKey(address(this), getTickLower(), getTickUpper(), bytes32(0));
-        liquidity = poolManager.getPositionLiquidity(key.toId(), positionKey);
-    }
-
-    /**
-     * @dev Asserts the hook transient `currencyDelta` in a `currency` to be zeroed.
-     * This function takes or settles the `currencyDelta` amount to the poolManager.
-     */
-    function _assertHookDelta(Currency currency) internal virtual {
-        int256 currencyDelta = poolManager.currencyDelta(address(this), currency);
-        if (currencyDelta > 0) {
-            currency.take(poolManager, address(this), currencyDelta.toUint256(), false);
-            _depositOnYieldSource(currency, currencyDelta.toUint256());
-        }
-        if (currencyDelta < 0) {
-            _withdrawFromYieldSource(currency, (-currencyDelta).toUint256());
-            currency.settle(poolManager, address(this), (-currencyDelta).toUint256(), false);
-        }
-    }
-
-    /**
-     * @dev Calculates the amount of liquidity to be provided from yield source assets.
-     * This function determines the amount of liquidity that that should be temporarily added to the pool
-     * based on the current balance of assets in the yield sources, converted to their
-     * underlying asset values.
-     * Note: This calculation uses the current pool price to ensure the liquidity
-     * can be properly distributed across the specified tick range.
-     */
-    // solhint-disable-next-line no-unused-parameter
-    function _getLiquidityToUse(PoolKey calldata key, SwapParams calldata params)
+    function _transferFromSenderToHook(Currency currency, uint256 amount, address sender)
         internal
         virtual
-        returns (uint128 liquidity)
+        nonReentrant
     {
-        uint256 balanceYieldSource0 = IERC4626(getYieldSourceForCurrency(key.currency0)).balanceOf(address(this));
-        uint256 balanceYieldSource1 = IERC4626(getYieldSourceForCurrency(key.currency1)).balanceOf(address(this));
-
-        uint256 assetsCurrency0 =
-            IERC4626(getYieldSourceForCurrency(key.currency0)).convertToAssets(balanceYieldSource0);
-        uint256 assetsCurrency1 =
-            IERC4626(getYieldSourceForCurrency(key.currency1)).convertToAssets(balanceYieldSource1);
-
-        (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(key.toId());
-        liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            currentSqrtPriceX96,
-            TickMath.getSqrtPriceAtTick(getTickLower()),
-            TickMath.getSqrtPriceAtTick(getTickUpper()),
-            assetsCurrency0,
-            assetsCurrency1
-        );
+        if (!currency.isAddressZero()) {
+            IERC20(Currency.unwrap(currency)).safeTransferFrom(sender, address(this), amount);
+        } else {
+            if (msg.value < amount) revert InvalidMsgValue();
+            if (msg.value > amount) {
+                (bool success,) = msg.sender.call{value: msg.value - amount}("");
+                if (!success) revert RefundFailed();
+            }
+        }
     }
 
     /**
-     * @dev Returns the pool key for the hook.
+     * @dev Transfers the `amount` of `currency` from the hook to the `sender`.
      */
-    function getPoolKey() public view returns (PoolKey memory) {
-        return _poolKey;
+    function _transferFromHookToSender(Currency currency, uint256 amount, address sender) internal virtual {
+        currency.transfer(sender, amount);
     }
+
+    /**
+     * @dev Returns the `yieldSource` address for a given `currency`.
+     *
+     * Note: Must be implemented and adapted for the desired type of yield sources, such as
+     *  ERC-4626 Vaults, or any custom DeFi protocol interface, optionally handling native currency.
+     */
+    function getCurrencyYieldSource(Currency currency) public view virtual returns (address yieldSource);
+
+    /**
+     * @dev Deposits a specified `amount` of `currency` into its corresponding yield source.
+     *
+     * Note: Must be implemented and adapted for the desired type of yield sources, such as
+     *  ERC-4626 Vaults, or any custom DeFi protocol interface, optionally handling native currency.
+     */
+    function _depositToYieldSource(Currency currency, uint256 amount) internal virtual;
+
+    /**
+     * @dev Withdraws a specified `amount` of `currency` from its corresponding yield source.
+     *
+     * Note: Must be implemented and adapted for the desired type of yield sources, such as
+     *  ERC-4626 Vaults, or any custom DeFi protocol interface, optionally handling native currency.
+     */
+    function _withdrawFromYieldSource(Currency currency, uint256 amount) internal virtual;
+
+    /**
+     * @dev Gets the `amount` of `currency` deposited in its corresponding yield source.
+     *
+     * Note: Must be implemented and adapted for the desired type of yield sources, such as
+     *  ERC-4626 Vaults, or any custom DeFi protocol interface, optionally handling native currency.
+     */
+    function _getAmountInYieldSource(Currency currency) internal view virtual returns (uint256 amount);
 
     /**
      * Set the hooks permissions, specifically `beforeInitialize`, `beforeSwap`, `afterSwap`.
-     *
      * @return permissions The permissions for the hook.
      */
     function getHookPermissions() public pure virtual override returns (Hooks.Permissions memory permissions) {
@@ -437,4 +462,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20 {
             afterRemoveLiquidityReturnDelta: false
         });
     }
+
+    /// @dev Allows the hook to receive native ETH from the yield sources.
+    // solhint-disable-next-line
+    receive() external payable virtual {}
 }

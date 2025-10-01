@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 import {BaseOracleHook} from "../BaseOracleHook.sol";
 
 /// @title V3OracleAdapter

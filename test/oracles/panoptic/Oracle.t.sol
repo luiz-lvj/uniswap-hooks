@@ -3,17 +3,17 @@ pragma solidity ^0.8.0;
 
 // External
 import {Test, Vm, stdMath} from "forge-std/Test.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {TickMath} from "v4-core/src/libraries/TickMath.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {PoolId} from "v4-core/src/types/PoolId.sol";
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
-import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
-import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
-import {SwapParams} from "v4-core/src/types/PoolOperation.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
+import {ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
+import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
+import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 
 // Internal
 import {OracleHookWithV3Adapters} from "../../../src/oracles/panoptic/OracleHookWithV3Adapters.sol";

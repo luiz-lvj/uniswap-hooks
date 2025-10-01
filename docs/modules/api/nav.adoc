@@ -3,4 +3,5 @@
 * xref:fee.adoc[Fee]
 * xref:general.adoc[General]
 * xref:interfaces.adoc[Interfaces]
+* xref:oracles.adoc[Oracles]
 * xref:utils.adoc[Utils]

@@ -150,7 +150,13 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
      * - Sender must have sufficient token balances
      * - Sender must have approved the hook to spend the required tokens
      */
-    function addReHypothecatedLiquidity(uint256 shares) public payable virtual returns (BalanceDelta delta) {
+    function addReHypothecatedLiquidity(uint256 shares)
+        public
+        payable
+        virtual
+        nonReentrant
+        returns (BalanceDelta delta)
+    {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
         if (shares == 0) revert ZeroShares();
 
@@ -182,7 +188,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
      * - Pool must be initialized
      * - Sender must have sufficient shares for the desired liquidity withdrawal
      */
-    function removeReHypothecatedLiquidity(uint256 shares) public virtual returns (BalanceDelta delta) {
+    function removeReHypothecatedLiquidity(uint256 shares) public virtual nonReentrant returns (BalanceDelta delta) {
         if (address(_poolKey.hooks) == address(0)) revert NotInitialized();
         if (shares == 0) revert ZeroShares();
 

@@ -2,11 +2,11 @@
 :BaseDynamicFee: pass:normal[xref:fee.adoc#BaseDynamicFee[`BaseDynamicFee`]]
 :BaseOverrideFee: pass:normal[xref:fee.adoc#BaseOverrideFee[`BaseOverrideFee`]]
 :BaseDynamicAfterFee: pass:normal[xref:fee.adoc#BaseDynamicAfterFee[`BaseDynamicAfterFee`]]
-:xref-BaseDynamicFee-constructor-contract-IPoolManager-: xref:fee.adoc#BaseDynamicFee-constructor-contract-IPoolManager-
 :xref-BaseDynamicFee-_getFee-struct-PoolKey-: xref:fee.adoc#BaseDynamicFee-_getFee-struct-PoolKey-
 :xref-BaseDynamicFee-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:fee.adoc#BaseDynamicFee-_afterInitialize-address-struct-PoolKey-uint160-int24-
 :xref-BaseDynamicFee-poke-struct-PoolKey-: xref:fee.adoc#BaseDynamicFee-poke-struct-PoolKey-
 :xref-BaseDynamicFee-getHookPermissions--: xref:fee.adoc#BaseDynamicFee-getHookPermissions--
+:xref-BaseHook-poolManager--: xref:base.adoc#BaseHook-poolManager--
 :xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
@@ -27,17 +27,16 @@
 :xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
-:xref-BaseHook-poolManager-contract-IPoolManager: xref:base.adoc#BaseHook-poolManager-contract-IPoolManager
 :xref-BaseDynamicFee-NotDynamicFee--: xref:fee.adoc#BaseDynamicFee-NotDynamicFee--
 :xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
 :xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
-:xref-BaseOverrideFee-constructor-contract-IPoolManager-: xref:fee.adoc#BaseOverrideFee-constructor-contract-IPoolManager-
 :xref-BaseOverrideFee-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:fee.adoc#BaseOverrideFee-_afterInitialize-address-struct-PoolKey-uint160-int24-
 :xref-BaseOverrideFee-_getFee-address-struct-PoolKey-struct-SwapParams-bytes-: xref:fee.adoc#BaseOverrideFee-_getFee-address-struct-PoolKey-struct-SwapParams-bytes-
 :xref-BaseOverrideFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:fee.adoc#BaseOverrideFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
 :xref-BaseOverrideFee-getHookPermissions--: xref:fee.adoc#BaseOverrideFee-getHookPermissions--
+:xref-BaseHook-poolManager--: xref:base.adoc#BaseHook-poolManager--
 :xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
@@ -57,7 +56,6 @@
 :xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
-:xref-BaseHook-poolManager-contract-IPoolManager: xref:base.adoc#BaseHook-poolManager-contract-IPoolManager
 :xref-BaseOverrideFee-NotDynamicFee--: xref:fee.adoc#BaseOverrideFee-NotDynamicFee--
 :xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
 :xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
@@ -67,12 +65,12 @@
 :xref-BaseDynamicAfterFee-_transientApplyTarget--: xref:fee.adoc#BaseDynamicAfterFee-_transientApplyTarget--
 :xref-BaseDynamicAfterFee-_setTransientTargetUnspecifiedAmount-uint256-: xref:fee.adoc#BaseDynamicAfterFee-_setTransientTargetUnspecifiedAmount-uint256-
 :xref-BaseDynamicAfterFee-_setTransientApplyTarget-bool-: xref:fee.adoc#BaseDynamicAfterFee-_setTransientApplyTarget-bool-
-:xref-BaseDynamicAfterFee-constructor-contract-IPoolManager-: xref:fee.adoc#BaseDynamicAfterFee-constructor-contract-IPoolManager-
 :xref-BaseDynamicAfterFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:fee.adoc#BaseDynamicAfterFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
 :xref-BaseDynamicAfterFee-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-: xref:fee.adoc#BaseDynamicAfterFee-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-
 :xref-BaseDynamicAfterFee-_getTargetUnspecified-address-struct-PoolKey-struct-SwapParams-bytes-: xref:fee.adoc#BaseDynamicAfterFee-_getTargetUnspecified-address-struct-PoolKey-struct-SwapParams-bytes-
 :xref-BaseDynamicAfterFee-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-: xref:fee.adoc#BaseDynamicAfterFee-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-
 :xref-BaseDynamicAfterFee-getHookPermissions--: xref:fee.adoc#BaseDynamicAfterFee-getHookPermissions--
+:xref-BaseHook-poolManager--: xref:base.adoc#BaseHook-poolManager--
 :xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
@@ -92,7 +90,6 @@
 :xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
-:xref-BaseHook-poolManager-contract-IPoolManager: xref:base.adoc#BaseHook-poolManager-contract-IPoolManager
 :xref-IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-
 :xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookFee-bytes32-address-uint128-uint128-
 :xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-: xref:interfaces.adoc#IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-
@@ -115,7 +112,6 @@ Hooks for managing and customizing pool fees, including dynamic fee adjustments,
 == Hooks
 
 :NotDynamicFee: pass:normal[xref:#BaseDynamicFee-NotDynamicFee--[`++NotDynamicFee++`]]
-:constructor: pass:normal[xref:#BaseDynamicFee-constructor-contract-IPoolManager-[`++constructor++`]]
 :_getFee: pass:normal[xref:#BaseDynamicFee-_getFee-struct-PoolKey-[`++_getFee++`]]
 :_afterInitialize: pass:normal[xref:#BaseDynamicFee-_afterInitialize-address-struct-PoolKey-uint160-int24-[`++_afterInitialize++`]]
 :poke: pass:normal[xref:#BaseDynamicFee-poke-struct-PoolKey-[`++poke++`]]
@@ -141,7 +137,6 @@ _Available since v0.1.0_
 [.contract-index]
 .Functions
 --
-* {xref-BaseDynamicFee-constructor-contract-IPoolManager-}[`++constructor(_poolManager)++`]
 * {xref-BaseDynamicFee-_getFee-struct-PoolKey-}[`++_getFee(key)++`]
 * {xref-BaseDynamicFee-_afterInitialize-address-struct-PoolKey-uint160-int24-}[`++_afterInitialize(, key, , )++`]
 * {xref-BaseDynamicFee-poke-struct-PoolKey-}[`++poke(key)++`]
@@ -149,6 +144,7 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
+* {xref-BaseHook-poolManager--}[`++poolManager()++`]
 * {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
@@ -169,7 +165,6 @@ _Available since v0.1.0_
 * {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
 * {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
 * {xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_afterDonate(, , , , )++`]
-* {xref-BaseHook-poolManager-contract-IPoolManager}[`++poolManager()++`]
 
 [.contract-subindex-inherited]
 .IHooks
@@ -192,12 +187,6 @@ _Available since v0.1.0_
 .IHooks
 
 --
-
-[.contract-item]
-[[BaseDynamicFee-constructor-contract-IPoolManager-]]
-==== `[.contract-item-name]#++constructor++#++(contract IPoolManager _poolManager)++` [.item-kind]#internal#
-
-Set the `PoolManager` address.
 
 [.contract-item]
 [[BaseDynamicFee-_getFee-struct-PoolKey-]]
@@ -242,7 +231,6 @@ Set the hook permissions, specifically `afterInitialize`.
 The hook was attempted to be initialized with a non-dynamic fee.
 
 :NotDynamicFee: pass:normal[xref:#BaseOverrideFee-NotDynamicFee--[`++NotDynamicFee++`]]
-:constructor: pass:normal[xref:#BaseOverrideFee-constructor-contract-IPoolManager-[`++constructor++`]]
 :_afterInitialize: pass:normal[xref:#BaseOverrideFee-_afterInitialize-address-struct-PoolKey-uint160-int24-[`++_afterInitialize++`]]
 :_getFee: pass:normal[xref:#BaseOverrideFee-_getFee-address-struct-PoolKey-struct-SwapParams-bytes-[`++_getFee++`]]
 :_beforeSwap: pass:normal[xref:#BaseOverrideFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-[`++_beforeSwap++`]]
@@ -268,7 +256,6 @@ _Available since v0.1.0_
 [.contract-index]
 .Functions
 --
-* {xref-BaseOverrideFee-constructor-contract-IPoolManager-}[`++constructor(_poolManager)++`]
 * {xref-BaseOverrideFee-_afterInitialize-address-struct-PoolKey-uint160-int24-}[`++_afterInitialize(, key, , )++`]
 * {xref-BaseOverrideFee-_getFee-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_getFee(sender, key, params, hookData)++`]
 * {xref-BaseOverrideFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_beforeSwap(sender, key, params, hookData)++`]
@@ -276,6 +263,7 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
+* {xref-BaseHook-poolManager--}[`++poolManager()++`]
 * {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
@@ -295,7 +283,6 @@ _Available since v0.1.0_
 * {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
 * {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
 * {xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_afterDonate(, , , , )++`]
-* {xref-BaseHook-poolManager-contract-IPoolManager}[`++poolManager()++`]
 
 [.contract-subindex-inherited]
 .IHooks
@@ -318,12 +305,6 @@ _Available since v0.1.0_
 .IHooks
 
 --
-
-[.contract-item]
-[[BaseOverrideFee-constructor-contract-IPoolManager-]]
-==== `[.contract-item-name]#++constructor++#++(contract IPoolManager _poolManager)++` [.item-kind]#internal#
-
-Set the `PoolManager` address.
 
 [.contract-item]
 [[BaseOverrideFee-_afterInitialize-address-struct-PoolKey-uint160-int24-]]
@@ -359,7 +340,6 @@ The hook was attempted to be initialized with a non-dynamic fee.
 :_transientApplyTarget: pass:normal[xref:#BaseDynamicAfterFee-_transientApplyTarget--[`++_transientApplyTarget++`]]
 :_setTransientTargetUnspecifiedAmount: pass:normal[xref:#BaseDynamicAfterFee-_setTransientTargetUnspecifiedAmount-uint256-[`++_setTransientTargetUnspecifiedAmount++`]]
 :_setTransientApplyTarget: pass:normal[xref:#BaseDynamicAfterFee-_setTransientApplyTarget-bool-[`++_setTransientApplyTarget++`]]
-:constructor: pass:normal[xref:#BaseDynamicAfterFee-constructor-contract-IPoolManager-[`++constructor++`]]
 :_beforeSwap: pass:normal[xref:#BaseDynamicAfterFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-[`++_beforeSwap++`]]
 :_afterSwap: pass:normal[xref:#BaseDynamicAfterFee-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-[`++_afterSwap++`]]
 :_getTargetUnspecified: pass:normal[xref:#BaseDynamicAfterFee-_getTargetUnspecified-address-struct-PoolKey-struct-SwapParams-bytes-[`++_getTargetUnspecified++`]]
@@ -397,7 +377,6 @@ _Available since v0.1.0_
 * {xref-BaseDynamicAfterFee-_transientApplyTarget--}[`++_transientApplyTarget()++`]
 * {xref-BaseDynamicAfterFee-_setTransientTargetUnspecifiedAmount-uint256-}[`++_setTransientTargetUnspecifiedAmount(value)++`]
 * {xref-BaseDynamicAfterFee-_setTransientApplyTarget-bool-}[`++_setTransientApplyTarget(value)++`]
-* {xref-BaseDynamicAfterFee-constructor-contract-IPoolManager-}[`++constructor(_poolManager)++`]
 * {xref-BaseDynamicAfterFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_beforeSwap(sender, key, params, hookData)++`]
 * {xref-BaseDynamicAfterFee-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-}[`++_afterSwap(sender, key, params, delta, )++`]
 * {xref-BaseDynamicAfterFee-_getTargetUnspecified-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_getTargetUnspecified(sender, key, params, hookData)++`]
@@ -409,6 +388,7 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
+* {xref-BaseHook-poolManager--}[`++poolManager()++`]
 * {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
@@ -428,7 +408,6 @@ _Available since v0.1.0_
 * {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
 * {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
 * {xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_afterDonate(, , , , )++`]
-* {xref-BaseHook-poolManager-contract-IPoolManager}[`++poolManager()++`]
 
 [.contract-subindex-inherited]
 .IHooks
@@ -496,12 +475,6 @@ Set the target unspecified amount to be enforced by the `afterSwap` hook.
 ==== `[.contract-item-name]#++_setTransientApplyTarget++#++(bool value)++` [.item-kind]#internal#
 
 Set the apply flag to be used in the `afterSwap` hook.
-
-[.contract-item]
-[[BaseDynamicAfterFee-constructor-contract-IPoolManager-]]
-==== `[.contract-item-name]#++constructor++#++(contract IPoolManager _poolManager)++` [.item-kind]#internal#
-
-Set the `PoolManager` address.
 
 [.contract-item]
 [[BaseDynamicAfterFee-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-]]

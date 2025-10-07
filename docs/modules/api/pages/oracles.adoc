@@ -1,7 +1,7 @@
 :github-icon: pass:[<svg class="icon"><use href="#github-icon"/></svg>]
 :BaseOracleHook: pass:normal[xref:oracles.adoc#BaseOracleHook[`BaseOracleHook`]]
 :OracleHookWithV3Adapters: pass:normal[xref:oracles.adoc#OracleHookWithV3Adapters[`OracleHookWithV3Adapters`]]
-:xref-BaseOracleHook-constructor-contract-IPoolManager-int24-: xref:oracles.adoc#BaseOracleHook-constructor-contract-IPoolManager-int24-
+:xref-BaseOracleHook-constructor-int24-: xref:oracles.adoc#BaseOracleHook-constructor-int24-
 :xref-BaseOracleHook-getHookPermissions--: xref:oracles.adoc#BaseOracleHook-getHookPermissions--
 :xref-BaseOracleHook-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:oracles.adoc#BaseOracleHook-_afterInitialize-address-struct-PoolKey-uint160-int24-
 :xref-BaseOracleHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:oracles.adoc#BaseOracleHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
@@ -10,6 +10,7 @@
 :xref-BaseOracleHook-MAX_ABS_TICK_DELTA-int24: xref:oracles.adoc#BaseOracleHook-MAX_ABS_TICK_DELTA-int24
 :xref-BaseOracleHook-observationsById-mapping-PoolId----struct-Oracle-Observation-65535--: xref:oracles.adoc#BaseOracleHook-observationsById-mapping-PoolId----struct-Oracle-Observation-65535--
 :xref-BaseOracleHook-stateById-mapping-PoolId----struct-BaseOracleHook-ObservationState-: xref:oracles.adoc#BaseOracleHook-stateById-mapping-PoolId----struct-BaseOracleHook-ObservationState-
+:xref-BaseHook-poolManager--: xref:base.adoc#BaseHook-poolManager--
 :xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
@@ -29,14 +30,13 @@
 :xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
-:xref-BaseHook-poolManager-contract-IPoolManager: xref:base.adoc#BaseHook-poolManager-contract-IPoolManager
 :xref-BaseOracleHook-IncreaseObservationCardinalityNext-PoolId-uint16-uint16-: xref:oracles.adoc#BaseOracleHook-IncreaseObservationCardinalityNext-PoolId-uint16-uint16-
 :xref-BaseOracleHook-PoolNotInitialized--: xref:oracles.adoc#BaseOracleHook-PoolNotInitialized--
 :xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
 :xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
-:xref-OracleHookWithV3Adapters-constructor-contract-IPoolManager-int24-: xref:oracles.adoc#OracleHookWithV3Adapters-constructor-contract-IPoolManager-int24-
+:xref-OracleHookWithV3Adapters-constructor-int24-: xref:oracles.adoc#OracleHookWithV3Adapters-constructor-int24-
 :xref-OracleHookWithV3Adapters-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:oracles.adoc#OracleHookWithV3Adapters-_afterInitialize-address-struct-PoolKey-uint160-int24-
 :xref-OracleHookWithV3Adapters-standardAdapter-mapping-PoolId----address-: xref:oracles.adoc#OracleHookWithV3Adapters-standardAdapter-mapping-PoolId----address-
 :xref-OracleHookWithV3Adapters-truncatedAdapter-mapping-PoolId----address-: xref:oracles.adoc#OracleHookWithV3Adapters-truncatedAdapter-mapping-PoolId----address-
@@ -47,6 +47,7 @@
 :xref-BaseOracleHook-MAX_ABS_TICK_DELTA-int24: xref:oracles.adoc#BaseOracleHook-MAX_ABS_TICK_DELTA-int24
 :xref-BaseOracleHook-observationsById-mapping-PoolId----struct-Oracle-Observation-65535--: xref:oracles.adoc#BaseOracleHook-observationsById-mapping-PoolId----struct-Oracle-Observation-65535--
 :xref-BaseOracleHook-stateById-mapping-PoolId----struct-BaseOracleHook-ObservationState-: xref:oracles.adoc#BaseOracleHook-stateById-mapping-PoolId----struct-BaseOracleHook-ObservationState-
+:xref-BaseHook-poolManager--: xref:base.adoc#BaseHook-poolManager--
 :xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
@@ -66,7 +67,6 @@
 :xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
-:xref-BaseHook-poolManager-contract-IPoolManager: xref:base.adoc#BaseHook-poolManager-contract-IPoolManager
 :xref-OracleHookWithV3Adapters-AdaptersDeployed-PoolId-address-address-: xref:oracles.adoc#OracleHookWithV3Adapters-AdaptersDeployed-PoolId-address-address-
 :xref-BaseOracleHook-IncreaseObservationCardinalityNext-PoolId-uint16-uint16-: xref:oracles.adoc#BaseOracleHook-IncreaseObservationCardinalityNext-PoolId-uint16-uint16-
 :xref-BaseOracleHook-PoolNotInitialized--: xref:oracles.adoc#BaseOracleHook-PoolNotInitialized--
@@ -92,7 +92,7 @@ Oracle hooks that enable Uniswap v4 pools to function as price oracles by record
 :MAX_ABS_TICK_DELTA: pass:normal[xref:#BaseOracleHook-MAX_ABS_TICK_DELTA-int24[`++MAX_ABS_TICK_DELTA++`]]
 :observationsById: pass:normal[xref:#BaseOracleHook-observationsById-mapping-PoolId----struct-Oracle-Observation-65535--[`++observationsById++`]]
 :stateById: pass:normal[xref:#BaseOracleHook-stateById-mapping-PoolId----struct-BaseOracleHook-ObservationState-[`++stateById++`]]
-:constructor: pass:normal[xref:#BaseOracleHook-constructor-contract-IPoolManager-int24-[`++constructor++`]]
+:constructor: pass:normal[xref:#BaseOracleHook-constructor-int24-[`++constructor++`]]
 :getHookPermissions: pass:normal[xref:#BaseOracleHook-getHookPermissions--[`++getHookPermissions++`]]
 :_afterInitialize: pass:normal[xref:#BaseOracleHook-_afterInitialize-address-struct-PoolKey-uint160-int24-[`++_afterInitialize++`]]
 :_beforeSwap: pass:normal[xref:#BaseOracleHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-[`++_beforeSwap++`]]
@@ -113,7 +113,7 @@ A hook that enables a Uniswap V4 pool to record price observations and expose an
 [.contract-index]
 .Functions
 --
-* {xref-BaseOracleHook-constructor-contract-IPoolManager-int24-}[`++constructor(_manager, _maxAbsTickDelta)++`]
+* {xref-BaseOracleHook-constructor-int24-}[`++constructor(_maxAbsTickDelta)++`]
 * {xref-BaseOracleHook-getHookPermissions--}[`++getHookPermissions()++`]
 * {xref-BaseOracleHook-_afterInitialize-address-struct-PoolKey-uint160-int24-}[`++_afterInitialize(, key, , tick)++`]
 * {xref-BaseOracleHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-}[`++_beforeSwap(, key, , )++`]
@@ -125,6 +125,7 @@ A hook that enables a Uniswap V4 pool to record price observations and expose an
 
 [.contract-subindex-inherited]
 .BaseHook
+* {xref-BaseHook-poolManager--}[`++poolManager()++`]
 * {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
@@ -144,7 +145,6 @@ A hook that enables a Uniswap V4 pool to record price observations and expose an
 * {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
 * {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
 * {xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_afterDonate(, , , , )++`]
-* {xref-BaseHook-poolManager-contract-IPoolManager}[`++poolManager()++`]
 
 [.contract-subindex-inherited]
 .IHooks
@@ -182,8 +182,8 @@ A hook that enables a Uniswap V4 pool to record price observations and expose an
 --
 
 [.contract-item]
-[[BaseOracleHook-constructor-contract-IPoolManager-int24-]]
-==== `[.contract-item-name]#++constructor++#++(contract IPoolManager _manager, int24 _maxAbsTickDelta)++` [.item-kind]#public#
+[[BaseOracleHook-constructor-int24-]]
+==== `[.contract-item-name]#++constructor++#++(int24 _maxAbsTickDelta)++` [.item-kind]#public#
 
 Initializes a Uniswap V4 pool with this hook, stores baseline observation state, and optionally performs a cardinality increase.
 
@@ -264,7 +264,7 @@ Observation cardinality cannot be increased if the pool is not initialized
 :AdaptersDeployed: pass:normal[xref:#OracleHookWithV3Adapters-AdaptersDeployed-PoolId-address-address-[`++AdaptersDeployed++`]]
 :standardAdapter: pass:normal[xref:#OracleHookWithV3Adapters-standardAdapter-mapping-PoolId----address-[`++standardAdapter++`]]
 :truncatedAdapter: pass:normal[xref:#OracleHookWithV3Adapters-truncatedAdapter-mapping-PoolId----address-[`++truncatedAdapter++`]]
-:constructor: pass:normal[xref:#OracleHookWithV3Adapters-constructor-contract-IPoolManager-int24-[`++constructor++`]]
+:constructor: pass:normal[xref:#OracleHookWithV3Adapters-constructor-int24-[`++constructor++`]]
 :_afterInitialize: pass:normal[xref:#OracleHookWithV3Adapters-_afterInitialize-address-struct-PoolKey-uint160-int24-[`++_afterInitialize++`]]
 
 [.contract]
@@ -281,7 +281,7 @@ A hook that enables a Uniswap V4 pool to record price observations and expose an
 [.contract-index]
 .Functions
 --
-* {xref-OracleHookWithV3Adapters-constructor-contract-IPoolManager-int24-}[`++constructor(_manager, _maxAbsTickDelta)++`]
+* {xref-OracleHookWithV3Adapters-constructor-int24-}[`++constructor(_maxAbsTickDelta)++`]
 * {xref-OracleHookWithV3Adapters-_afterInitialize-address-struct-PoolKey-uint160-int24-}[`++_afterInitialize(, key, , tick)++`]
 * {xref-OracleHookWithV3Adapters-standardAdapter-mapping-PoolId----address-}[`++standardAdapter()++`]
 * {xref-OracleHookWithV3Adapters-truncatedAdapter-mapping-PoolId----address-}[`++truncatedAdapter()++`]
@@ -298,6 +298,7 @@ A hook that enables a Uniswap V4 pool to record price observations and expose an
 
 [.contract-subindex-inherited]
 .BaseHook
+* {xref-BaseHook-poolManager--}[`++poolManager()++`]
 * {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
@@ -317,7 +318,6 @@ A hook that enables a Uniswap V4 pool to record price observations and expose an
 * {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
 * {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
 * {xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_afterDonate(, , , , )++`]
-* {xref-BaseHook-poolManager-contract-IPoolManager}[`++poolManager()++`]
 
 [.contract-subindex-inherited]
 .IHooks
@@ -362,8 +362,8 @@ A hook that enables a Uniswap V4 pool to record price observations and expose an
 --
 
 [.contract-item]
-[[OracleHookWithV3Adapters-constructor-contract-IPoolManager-int24-]]
-==== `[.contract-item-name]#++constructor++#++(contract IPoolManager _manager, int24 _maxAbsTickDelta)++` [.item-kind]#public#
+[[OracleHookWithV3Adapters-constructor-int24-]]
+==== `[.contract-item-name]#++constructor++#++(int24 _maxAbsTickDelta)++` [.item-kind]#public#
 
 Initializes a Uniswap V4 pool with this hook, stores baseline observation state, and optionally performs a cardinality increase.
 

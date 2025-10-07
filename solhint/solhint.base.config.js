@@ -11,7 +11,9 @@ const baseRules = {
     'modifier-name-mixedcase': 'error',
     'no-console': 'error', 
     'no-global-import': 'error',
-    'no-unused-vars': 'warn',
+    'no-unused-vars': ['warn', {
+        validateParameters: false,
+    }],
     'quotes': 'error',
     'use-forbidden-name': 'error',
     'var-name-mixedcase': 'error',

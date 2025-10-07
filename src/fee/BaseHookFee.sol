@@ -96,7 +96,7 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
         return (this.afterSwap.selector, feeAmount.toInt128());
     }
 
-    /* 
+    /*
     * @dev Must be implemented to handle the accumulated hook fees, such as distributing or withdrawing them via ERC-6909 claims.
     */
     function handleHookFees(Currency[] memory currencies) public virtual;

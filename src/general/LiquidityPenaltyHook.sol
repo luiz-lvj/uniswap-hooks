@@ -85,7 +85,7 @@ contract LiquidityPenaltyHook is BaseHook {
     mapping(PoolId poolId => mapping(bytes32 positionKey => BalanceDelta delta)) private _withheldFees;
 
     /**
-     * @dev Sets the `PoolManager` address and the {getBlockNumberOffset}.
+     * @dev Sets the {getBlockNumberOffset}.
      */
     constructor(uint48 _blockNumberOffset) {
         if (_blockNumberOffset < MIN_BLOCK_NUMBER_OFFSET) revert BlockNumberOffsetTooLow();

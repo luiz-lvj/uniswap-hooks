@@ -107,11 +107,6 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
     );
 
     /**
-     * @dev Sets the `PoolManager` address.
-     */
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
-
-    /**
      * @dev Returns the `poolKey` for the hook pool.
      */
     function getPoolKey() public view returns (PoolKey memory poolKey) {

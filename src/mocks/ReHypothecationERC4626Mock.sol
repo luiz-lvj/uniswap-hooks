@@ -30,7 +30,7 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
     address private _yieldSource0;
     address private _yieldSource1;
 
-    constructor(address yieldSource0_, address yieldSource1_) ReHypothecationHook("ReHypothecationMock", "RHM") {
+    constructor(address yieldSource0_, address yieldSource1_) ERC20("ReHypothecatatedShare", "RHM") {
         _yieldSource0 = yieldSource0_;
         _yieldSource1 = yieldSource1_;
     }

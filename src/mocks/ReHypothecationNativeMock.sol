@@ -66,7 +66,7 @@ contract ReHypothecationNativeMock is ReHypothecationHook {
     /// @dev Error thrown when attempting to use an unsupported currency.
     error UnsupportedCurrency();
 
-    constructor(address yieldSource0_, address yieldSource1_) ReHypothecationHook("ReHypothecationMock", "RHM") {
+    constructor(address yieldSource0_, address yieldSource1_) ERC20("ReHypothecatatedShare", "RHM") {
         _yieldSource0 = yieldSource0_;
         _yieldSource1 = yieldSource1_;
     }

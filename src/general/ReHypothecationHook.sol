@@ -107,11 +107,6 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
     );
 
     /**
-     * @dev Sets the `PoolManager` address.
-     */
-    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
-
-    /**
      * @dev Returns the `poolKey` for the hook pool.
      */
     function getPoolKey() public view returns (PoolKey memory poolKey) {
@@ -261,6 +256,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
      * neutralizing the Flash Accounting deltas before locking the poolManager again.
      */
     function _resolveHookDelta(Currency currency) internal virtual {
+        IPoolManager poolManager = poolManager();
+
         int256 currencyDelta = poolManager.currencyDelta(address(this), currency);
         if (currencyDelta > 0) {
             currency.take(poolManager, address(this), currencyDelta.toUint256(), false);
@@ -288,7 +285,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
     function _convertSharesToAmounts(uint256 shares) internal view virtual returns (uint256 amount0, uint256 amount1) {
         // If the hook has not emitted shares yet, then consider `liquidity == shares`
         if (totalSupply() == 0) {
-            (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
+            (uint160 currentSqrtPriceX96,,,) = poolManager().getSlot0(_poolKey.toId());
             return LiquidityAmounts.getAmountsForLiquidity(
                 currentSqrtPriceX96,
                 TickMath.getSqrtPriceAtTick(getTickLower()),
@@ -323,7 +320,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
      * give better pricing to swappers at the cost of the profitability of LP's and increased risks.
      */
     function _getLiquidityToUse() internal view virtual returns (uint256) {
-        (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
+        (uint160 currentSqrtPriceX96,,,) = poolManager().getSlot0(_poolKey.toId());
         return LiquidityAmounts.getLiquidityForAmounts(
             currentSqrtPriceX96,
             TickMath.getSqrtPriceAtTick(getTickLower()),
@@ -343,7 +340,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
      */
     function _getHookPositionLiquidity() internal view virtual returns (uint128 liquidity) {
         bytes32 positionKey = Position.calculatePositionKey(address(this), getTickLower(), getTickUpper(), bytes32(0));
-        return poolManager.getPositionLiquidity(_poolKey.toId(), positionKey);
+        return poolManager().getPositionLiquidity(_poolKey.toId(), positionKey);
     }
 
     /**
@@ -370,7 +367,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
      * Positive liquidityDelta adds liquidity, while negative removes it.
      */
     function _modifyLiquidity(int256 liquidityDelta) internal virtual returns (BalanceDelta delta) {
-        (delta,) = poolManager.modifyLiquidity(
+        (delta,) = poolManager().modifyLiquidity(
             _poolKey,
             ModifyLiquidityParams({
                 tickLower: getTickLower(),

@@ -20,7 +20,7 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
 
     uint256 private _nativeRefund;
 
-    constructor(IPoolManager _poolManager) BaseCustomAccounting(_poolManager) ERC20("Mock", "MOCK") {}
+    constructor() ERC20("Mock", "MOCK") {}
 
     function setNativeRefund(uint256 nativeRefundFee) external {
         _nativeRefund = nativeRefundFee;
@@ -61,6 +61,7 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
         override
         returns (bytes memory, uint256 liquidity)
     {
+        IPoolManager poolManager = poolManager();
         liquidity = FullMath.mulDiv(params.liquidity, poolManager.getLiquidity(poolKey().toId()), totalSupply());
 
         return (
@@ -76,12 +77,12 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
         );
     }
 
-    function _mint(AddLiquidityParams memory params, BalanceDelta, BalanceDelta, uint256 liquidity) internal override {
-        _mint(msg.sender, liquidity);
+    function _mint(AddLiquidityParams memory params, BalanceDelta, BalanceDelta, uint256 shares) internal override {
+        _mint(msg.sender, shares);
     }
 
-    function _burn(RemoveLiquidityParams memory, BalanceDelta, BalanceDelta, uint256 liquidity) internal override {
-        _burn(msg.sender, liquidity);
+    function _burn(RemoveLiquidityParams memory, BalanceDelta, BalanceDelta, uint256 shares) internal override {
+        _burn(msg.sender, shares);
     }
 
     // Exclude from coverage report

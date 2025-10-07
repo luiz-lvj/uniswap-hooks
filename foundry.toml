@@ -1,5 +1,6 @@
 [profile.default]
 src             = 'src'                                 # The source directory
+test            = 'test'                                # The test directory
 out             = 'out'                                 # The output directory
 libs            = ['lib']                               # A list of library directories
 solc            = "0.8.26"                              # The Solidity compiler version
@@ -9,6 +10,7 @@ fs_permissions  = [{ access = "read", path = "./"}]     # Gives permission to re
 evm_version     = "cancun"                              # The EVM version to use
 ffi             = true                                  # Enable the foreign function interface (ffi) cheatcode.
 gas_limit = 100000000
+no_match_path   = "src/mocks/**/*.sol"                  # Exclude mocks from compilation and testing
 
 [fuzz]
 runs           = 256        # The number of times to run the fuzzing tests

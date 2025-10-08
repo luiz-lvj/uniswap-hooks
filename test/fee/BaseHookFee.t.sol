@@ -53,7 +53,7 @@ contract BaseHookFeeTest is HookTest {
             sqrtPriceLimitX96: MIN_PRICE_LIMIT
         });
 
-        BalanceDelta deltaHook = swapRouter.swap(key, swapParams, testSettings, "");
+        swapRouter.swap(key, swapParams, testSettings, "");
         BalanceDelta deltaNoHook = swapRouter.swap(noHookKey, swapParams, testSettings, "");
 
         // exactInput && zeroForOne == true => currency0 is specified, currency1 is unspecified
@@ -74,7 +74,7 @@ contract BaseHookFeeTest is HookTest {
             sqrtPriceLimitX96: MIN_PRICE_LIMIT
         });
 
-        BalanceDelta deltaHook = swapRouter.swap(key, swapParams, testSettings, "");
+        swapRouter.swap(key, swapParams, testSettings, "");
         BalanceDelta deltaNoHook = swapRouter.swap(noHookKey, swapParams, testSettings, "");
 
         // exactInput && zeroForOne == false => currency1 is specified, currency0 is unspecified
@@ -95,7 +95,7 @@ contract BaseHookFeeTest is HookTest {
             sqrtPriceLimitX96: MAX_PRICE_LIMIT
         });
 
-        BalanceDelta deltaHook = swapRouter.swap(key, swapParams, testSettings, "");
+        swapRouter.swap(key, swapParams, testSettings, "");
         BalanceDelta deltaNoHook = swapRouter.swap(noHookKey, swapParams, testSettings, "");
 
         // exactInput && zeroForOne == false => currency1 is specified, currency0 is unspecified

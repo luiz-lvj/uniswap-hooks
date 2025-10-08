@@ -12,7 +12,7 @@ import {Deploy} from "@uniswap/v4-periphery/test/shared/Deploy.sol";
 import {HookTest} from "test/utils/HookTest.sol";
 import {IV4Quoter} from "test/utils/interfaces/IV4Quoter.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-// solhint-disable-next-line
+// solhint-disable-next-line no-unused-import
 import {V4Quoter} from "@uniswap/v4-periphery/src/lens/V4Quoter.sol";
 
 contract BaseDynamicAfterFeeTest is HookTest {

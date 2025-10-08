@@ -45,17 +45,18 @@ contract BaseHookFeeMock is BaseHookFee, AccessControl {
 
     /// @dev callback from the poolManager to unlock and transfer the hook fees to the sender.
     function unlockCallback(bytes calldata data) external onlyPoolManager returns (bytes memory) {
-        IPoolManager poolManager = poolManager();
-
+        IPoolManager manager = poolManager();
         (Currency[] memory currencies, address recipient) = abi.decode(data, (Currency[], address));
 
+        // slither-disable-start calls-loop
         for (uint256 i = 0; i < currencies.length; i++) {
-            uint256 amount = poolManager.balanceOf(address(this), currencies[i].toId());
+            uint256 amount = manager.balanceOf(address(this), currencies[i].toId());
             if (amount > 0) {
-                currencies[i].settle(poolManager, address(this), amount, true); // burn claims
-                currencies[i].take(poolManager, recipient, amount, false); // take tokens
+                currencies[i].settle(manager, address(this), amount, true); // burn claims
+                currencies[i].take(manager, recipient, amount, false); // take tokens
             }
         }
+        // slither-disable-end calls-loop
 
         return "";
     }

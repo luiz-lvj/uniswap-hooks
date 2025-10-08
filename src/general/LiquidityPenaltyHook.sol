@@ -199,12 +199,12 @@ contract LiquidityPenaltyHook is BaseHook {
      */
     function _takeFeesToHook(PoolKey calldata key, bytes32 positionKey, BalanceDelta feeDelta) internal virtual {
         PoolId poolId = key.toId();
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
 
         _withheldFees[poolId][positionKey] = _withheldFees[poolId][positionKey] + feeDelta;
 
-        key.currency0.take(poolManager, address(this), uint256(uint128(feeDelta.amount0())), true);
-        key.currency1.take(poolManager, address(this), uint256(uint128(feeDelta.amount1())), true);
+        key.currency0.take(manager, address(this), uint256(uint128(feeDelta.amount0())), true);
+        key.currency1.take(manager, address(this), uint256(uint128(feeDelta.amount1())), true);
     }
 
     /**
@@ -216,7 +216,7 @@ contract LiquidityPenaltyHook is BaseHook {
         returns (BalanceDelta withheldFees)
     {
         PoolId poolId = key.toId();
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
 
         withheldFees = getWithheldFees(poolId, positionKey);
 
@@ -225,10 +225,10 @@ contract LiquidityPenaltyHook is BaseHook {
 
         // Settle the `withheldFees` for the liquidity position.
         if (withheldFees.amount0() > 0) {
-            key.currency0.settle(poolManager, address(this), uint256(uint128(withheldFees.amount0())), true);
+            key.currency0.settle(manager, address(this), uint256(uint128(withheldFees.amount0())), true);
         }
         if (withheldFees.amount1() > 0) {
-            key.currency1.settle(poolManager, address(this), uint256(uint128(withheldFees.amount1())), true);
+            key.currency1.settle(manager, address(this), uint256(uint128(withheldFees.amount1())), true);
         }
     }
 

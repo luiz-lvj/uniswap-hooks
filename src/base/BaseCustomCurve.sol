@@ -88,7 +88,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         override
         returns (bytes4, BeforeSwapDelta returnDelta, uint24)
     {
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
 
         // Determine if the swap is exact input or exact output
         bool exactInput = params.amountSpecified < 0;
@@ -109,17 +109,17 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         if (exactInput) {
             // For exact input swaps:
             // 1. Take the specified input (user-given) amount from this contract's balance in the pool
-            specified.take(poolManager, address(this), specifiedAmount, true);
+            specified.take(manager, address(this), specifiedAmount, true);
             // 2. Send the calculated output amount to this contract's balance in the pool
-            unspecified.settle(poolManager, address(this), unspecifiedAmount, true);
+            unspecified.settle(manager, address(this), unspecifiedAmount, true);
 
             returnDelta = toBeforeSwapDelta(specifiedAmount.toInt128(), -unspecifiedAmount.toInt128());
         } else {
             // For exact output swaps:
             // 1. Take the calculated input amount from this contract's balance in the pool
-            unspecified.take(poolManager, address(this), unspecifiedAmount, true);
+            unspecified.take(manager, address(this), unspecifiedAmount, true);
             // 2. Send the specified (user-given) output amount to this contract's balance in the pool
-            specified.settle(poolManager, address(this), specifiedAmount, true);
+            specified.settle(manager, address(this), specifiedAmount, true);
 
             returnDelta = toBeforeSwapDelta(-specifiedAmount.toInt128(), unspecifiedAmount.toInt128());
         }
@@ -184,23 +184,25 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         onlyPoolManager
         returns (bytes memory returnData)
     {
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
         CallbackDataCustom memory data = abi.decode(rawData, (CallbackDataCustom));
 
+        // slither-disable-next-line uninitialized-local
         int128 amount0;
+        // slither-disable-next-line uninitialized-local
         int128 amount1;
 
         // This section handles liquidity modifications (adding/removing) for both tokens in the pool
         // The sign of data.amount0/1 determines if we're removing (-) or adding (+) liquidity
 
-        PoolKey memory _poolKey = poolKey();
+        PoolKey memory key = poolKey();
 
         // Remove liquidity if amount0 is negative
         if (data.amount0 < 0) {
             // Burns ERC-6909 tokens to receive tokens
-            _poolKey.currency0.settle(poolManager, address(this), uint256(int256(-data.amount0)), true);
+            key.currency0.settle(manager, address(this), uint256(int256(-data.amount0)), true);
             // Sends tokens from the pool to the user
-            _poolKey.currency0.take(poolManager, data.sender, uint256(int256(-data.amount0)), false);
+            key.currency0.take(manager, data.sender, uint256(int256(-data.amount0)), false);
             // Record the amount so that it can be then encoded into the delta
             amount0 = -data.amount0;
         }
@@ -208,9 +210,9 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         // Remove liquidity if amount1 is negative
         if (data.amount1 < 0) {
             // Burns ERC-6909 tokens to receive tokens
-            _poolKey.currency1.settle(poolManager, address(this), uint256(int256(-data.amount1)), true);
+            key.currency1.settle(manager, address(this), uint256(int256(-data.amount1)), true);
             // Sends tokens from the pool to the user
-            _poolKey.currency1.take(poolManager, data.sender, uint256(int256(-data.amount1)), false);
+            key.currency1.take(manager, data.sender, uint256(int256(-data.amount1)), false);
             // Record the amount so that it can be then encoded into the delta
             amount1 = -data.amount1;
         }
@@ -218,9 +220,9 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         // Add liquidity if amount0 is positive
         if (data.amount0 > 0) {
             // First settle (send) tokens from user to pool
-            _poolKey.currency0.settle(poolManager, data.sender, uint256(int256(data.amount0)), false);
+            key.currency0.settle(manager, data.sender, uint256(int256(data.amount0)), false);
             // Take (mint) ERC-6909 tokens to be received by this hook
-            _poolKey.currency0.take(poolManager, address(this), uint256(int256(data.amount0)), true);
+            key.currency0.take(manager, address(this), uint256(int256(data.amount0)), true);
             // Record the amount so that it can be then encoded into the delta
             amount0 = -data.amount0;
         }
@@ -228,14 +230,14 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         // Add liquidity if amount1 is positive
         if (data.amount1 > 0) {
             // First settle (send) tokens from user to pool
-            _poolKey.currency1.settle(poolManager, data.sender, uint256(int256(data.amount1)), false);
+            key.currency1.settle(manager, data.sender, uint256(int256(data.amount1)), false);
             // Take (mint) ERC-6909 tokens to be received by this hook
-            _poolKey.currency1.take(poolManager, address(this), uint256(int256(data.amount1)), true);
+            key.currency1.take(manager, address(this), uint256(int256(data.amount1)), true);
             // Record the amount so that it can be then encoded into the delta
             amount1 = -data.amount1;
         }
 
-        emit HookModifyLiquidity(PoolId.unwrap(_poolKey.toId()), data.sender, amount0, amount1);
+        emit HookModifyLiquidity(PoolId.unwrap(key.toId()), data.sender, amount0, amount1);
 
         // Return the encoded caller and fees accrued (zero by default) deltas
         return abi.encode(toBalanceDelta(amount0, amount1), BalanceDeltaLibrary.ZERO_DELTA);

@@ -175,6 +175,7 @@ contract BaseOracleHook is BaseHook {
         uint16 observationCardinalityNextNew =
             observationsById[underlyingPoolId].grow(observationCardinalityNextOld, observationCardinalityNext);
         stateById[underlyingPoolId].cardinalityNext = observationCardinalityNextNew;
+        // slither-disable-next-line timestamp
         if (observationCardinalityNextOld != observationCardinalityNextNew) {
             emit IncreaseObservationCardinalityNext(
                 underlyingPoolId, observationCardinalityNextOld, observationCardinalityNextNew

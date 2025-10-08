@@ -33,11 +33,11 @@ contract OracleHookWithV3Adapters is BaseOracleHook {
     /// @inheritdoc BaseOracleHook
     function _afterInitialize(address, PoolKey calldata key, uint160, int24 tick) internal override returns (bytes4) {
         PoolId poolId = key.toId();
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
 
         // Deploy adapter contracts
-        V3OracleAdapter _standardAdapter = new V3OracleAdapter(poolManager, this, poolId);
-        V3TruncatedOracleAdapter _truncatedAdapter = new V3TruncatedOracleAdapter(poolManager, this, poolId);
+        V3OracleAdapter _standardAdapter = new V3OracleAdapter(manager, this, poolId);
+        V3TruncatedOracleAdapter _truncatedAdapter = new V3TruncatedOracleAdapter(manager, this, poolId);
 
         // Store adapter addresses
         standardAdapter[poolId] = address(_standardAdapter);

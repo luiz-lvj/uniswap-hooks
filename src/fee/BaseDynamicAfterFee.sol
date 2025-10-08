@@ -150,6 +150,7 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
         // Get the exact input flag
         bool exactInput = params.amountSpecified < 0;
 
+        // slither-disable-next-line uninitialized-local
         uint256 feeAmount;
 
         // If the swap is exactInput, any fee should be decreased from the swap output

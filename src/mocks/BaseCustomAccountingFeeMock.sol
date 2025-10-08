@@ -25,13 +25,13 @@ contract BaseCustomAccountingFeeMock is BaseCustomAccountingMock {
         override
     {
         PoolKey memory key = poolKey();
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
 
         uint256 feesAccruedFeeBps = _feesAccruedFeeBps;
 
         // Fetch fees from the pool
-        key.currency0.take(poolManager, address(this), uint256(int256(feesAccrued.amount0())), false);
-        key.currency1.take(poolManager, address(this), uint256(int256(feesAccrued.amount1())), false);
+        key.currency0.take(manager, address(this), uint256(int256(feesAccrued.amount0())), false);
+        key.currency1.take(manager, address(this), uint256(int256(feesAccrued.amount1())), false);
 
         uint256 fee0 = uint256(int256(feesAccrued.amount0())) * feesAccruedFeeBps / 10_000;
         uint256 fee1 = uint256(int256(feesAccrued.amount1())) * feesAccruedFeeBps / 10_000;

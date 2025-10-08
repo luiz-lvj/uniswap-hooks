@@ -256,16 +256,16 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
      * neutralizing the Flash Accounting deltas before locking the poolManager again.
      */
     function _resolveHookDelta(Currency currency) internal virtual {
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
 
-        int256 currencyDelta = poolManager.currencyDelta(address(this), currency);
+        int256 currencyDelta = manager.currencyDelta(address(this), currency);
         if (currencyDelta > 0) {
-            currency.take(poolManager, address(this), currencyDelta.toUint256(), false);
+            currency.take(manager, address(this), currencyDelta.toUint256(), false);
             _depositToYieldSource(currency, currencyDelta.toUint256());
         }
         if (currencyDelta < 0) {
             _withdrawFromYieldSource(currency, (-currencyDelta).toUint256());
-            currency.settle(poolManager, address(this), (-currencyDelta).toUint256(), false);
+            currency.settle(manager, address(this), (-currencyDelta).toUint256(), false);
         }
     }
 
@@ -388,6 +388,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
         } else {
             if (msg.value < amount) revert InvalidMsgValue();
             if (msg.value > amount) {
+                // slither-disable-next-line arbitrary-send-eth
                 (bool success,) = msg.sender.call{value: msg.value - amount}("");
                 if (!success) revert RefundFailed();
             }

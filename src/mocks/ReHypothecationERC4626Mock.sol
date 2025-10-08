@@ -27,12 +27,16 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
     /// @dev Error thrown when attempting to use an unsupported currency.
     error UnsupportedCurrency();
 
-    address private _yieldSource0;
-    address private _yieldSource1;
+    /// @dev Error thrown when attempting to use an invalid yield source.
+    error InvalidYieldSource();
+
+    address private immutable yieldSource0;
+    address private immutable yieldSource1;
 
     constructor(address yieldSource0_, address yieldSource1_) ERC20("ReHypothecatatedShare", "RHM") {
-        _yieldSource0 = yieldSource0_;
-        _yieldSource1 = yieldSource1_;
+        if (yieldSource0_ == address(0) || yieldSource1_ == address(0)) revert InvalidYieldSource();
+        yieldSource0 = yieldSource0;
+        yieldSource1 = yieldSource1;
     }
 
     /// @dev Override to disable native currency, which is not supported by ERC-4626 yield sources.
@@ -48,8 +52,8 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
     /// @inheritdoc ReHypothecationHook
     function getCurrencyYieldSource(Currency currency) public view override returns (address) {
         PoolKey memory poolKey = getPoolKey();
-        if (currency == poolKey.currency0) return _yieldSource0;
-        if (currency == poolKey.currency1) return _yieldSource1;
+        if (currency == poolKey.currency0) return yieldSource0;
+        if (currency == poolKey.currency1) return yieldSource1;
         revert UnsupportedCurrency();
     }
 

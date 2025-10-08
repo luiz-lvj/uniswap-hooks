@@ -81,7 +81,7 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
         returns (bytes4, BeforeSwapDelta, uint24)
     {
         PoolId poolId = key.toId();
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
         uint48 currentBlock = _getBlockNumber();
@@ -89,11 +89,11 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
         // update the top-of-block `slot0` if new block
         if (_lastCheckpoint.blockNumber != currentBlock) {
             int24 lastTick = _lastCheckpoint.state.slot0.tick();
-            _lastCheckpoint.state.slot0 = Slot0.wrap(poolManager.extsload(StateLibrary._getPoolStateSlot(poolId)));
+            _lastCheckpoint.state.slot0 = Slot0.wrap(manager.extsload(StateLibrary._getPoolStateSlot(poolId)));
             _lastCheckpoint.blockNumber = currentBlock;
 
             // iterate over ticks
-            (, int24 currentTick,,) = poolManager.getSlot0(poolId);
+            (, int24 currentTick,,) = manager.getSlot0(poolId);
             if (currentTick < lastTick) {
                 for (int24 tick = currentTick; tick <= lastTick; tick += key.tickSpacing) {
                     (
@@ -101,7 +101,7 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
                         _lastCheckpoint.state.ticks[tick].liquidityNet,
                         _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128,
                         _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128
-                    ) = poolManager.getTickInfo(poolId, tick);
+                    ) = manager.getTickInfo(poolId, tick);
                 }
             } else {
                 for (int24 tick = currentTick; tick >= lastTick; tick -= key.tickSpacing) {
@@ -110,13 +110,13 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
                         _lastCheckpoint.state.ticks[tick].liquidityNet,
                         _lastCheckpoint.state.ticks[tick].feeGrowthOutside0X128,
                         _lastCheckpoint.state.ticks[tick].feeGrowthOutside1X128
-                    ) = poolManager.getTickInfo(poolId, tick);
+                    ) = manager.getTickInfo(poolId, tick);
                 }
             }
 
             (_lastCheckpoint.state.feeGrowthGlobal0X128, _lastCheckpoint.state.feeGrowthGlobal1X128) =
-                poolManager.getFeeGrowthGlobals(poolId);
-            _lastCheckpoint.state.liquidity = poolManager.getLiquidity(poolId);
+                manager.getFeeGrowthGlobals(poolId);
+            _lastCheckpoint.state.liquidity = manager.getLiquidity(poolId);
         }
 
         return super._beforeSwap(sender, key, params, hookData);

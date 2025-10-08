@@ -477,11 +477,11 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         virtual
         returns (uint256 amount0Fee, uint256 amount1Fee)
     {
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
         PoolKey memory key = placeData.key;
 
         // add the out of range liquidity to the pool
-        (BalanceDelta principalDelta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(
+        (BalanceDelta principalDelta, BalanceDelta feesAccrued) = manager.modifyLiquidity(
             key,
             ModifyLiquidityParams({
                 tickLower: placeData.tickLower,
@@ -493,10 +493,10 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         );
 
         if (feesAccrued.amount0() > 0) {
-            key.currency0.take(poolManager, address(this), amount0Fee = uint256(uint128(feesAccrued.amount0())), true);
+            key.currency0.take(manager, address(this), amount0Fee = uint256(uint128(feesAccrued.amount0())), true);
         }
         if (feesAccrued.amount1() > 0) {
-            key.currency1.take(poolManager, address(this), amount1Fee = uint256(uint128(feesAccrued.amount1())), true);
+            key.currency1.take(manager, address(this), amount1Fee = uint256(uint128(feesAccrued.amount1())), true);
         }
 
         BalanceDelta delta = principalDelta - feesAccrued;
@@ -509,7 +509,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             if (!placeData.zeroForOne) revert CrossedRange();
 
             // settle the currency0 to the owner
-            key.currency0.settle(poolManager, placeData.owner, uint256(uint128(-delta.amount0())), false);
+            key.currency0.settle(manager, placeData.owner, uint256(uint128(-delta.amount0())), false);
         } else {
             // if the amount of currency0 is not 0, the limit order is in range
             if (delta.amount0() != 0) revert InRange();
@@ -517,7 +517,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             if (placeData.zeroForOne) revert CrossedRange();
 
             // settle the currency1 to the owner
-            key.currency1.settle(poolManager, placeData.owner, uint256(uint128(-delta.amount1())), false);
+            key.currency1.settle(manager, placeData.owner, uint256(uint128(-delta.amount1())), false);
         }
     }
 
@@ -531,12 +531,12 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         virtual
         returns (uint256 amount0Fee, uint256 amount1Fee)
     {
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
 
         int24 tickUpper = cancelData.tickLower + cancelData.key.tickSpacing;
 
         // remove the liquidity from the pool. The fees accrued by the position are included in the `cancelDelta`
-        (BalanceDelta cancelDelta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(
+        (BalanceDelta cancelDelta, BalanceDelta feesAccrued) = manager.modifyLiquidity(
             cancelData.key,
             ModifyLiquidityParams({
                 tickLower: cancelData.tickLower,
@@ -556,14 +556,14 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         if (!cancelData.removingAllLiquidity) {
             // if the amount of fees in currency0 is positive, mint currency0 to the hook
             if (feesAccrued.amount0() > 0) {
-                poolManager.mint(
+                manager.mint(
                     address(this), cancelData.key.currency0.toId(), amount0Fee = uint128(feesAccrued.amount0())
                 );
             }
 
             // if the amount of fees in currency1 is positive, mint currency1 to the hook
             if (feesAccrued.amount1() > 0) {
-                poolManager.mint(
+                manager.mint(
                     address(this), cancelData.key.currency1.toId(), amount1Fee = uint128(feesAccrued.amount1())
                 );
             }
@@ -579,12 +579,12 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
 
         // if the amount of currency0 is positive, take the currency0 from the pool and send it to the `to` address
         if (principalDelta.amount0() > 0) {
-            cancelData.key.currency0.take(poolManager, cancelData.to, uint256(uint128(principalDelta.amount0())), false);
+            cancelData.key.currency0.take(manager, cancelData.to, uint256(uint128(principalDelta.amount0())), false);
         }
 
         // if the amount of currency1 is positive, take the currency1 from the pool and send it to the `to` address
         if (principalDelta.amount1() > 0) {
-            cancelData.key.currency1.take(poolManager, cancelData.to, uint256(uint128(principalDelta.amount1())), false);
+            cancelData.key.currency1.take(manager, cancelData.to, uint256(uint128(principalDelta.amount1())), false);
         }
     }
 
@@ -593,22 +593,22 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * burns the specified currency amounts from the hook, and transfers them to the recipient address.
      */
     function _handleWithdrawCallback(WithdrawCallbackData memory withdrawData) internal virtual {
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
 
         // if the amount of currency0 is positive, burn the currency0 from the hook
         if (withdrawData.currency0Amount > 0) {
             // burn the currency0 from the hook
-            poolManager.burn(address(this), withdrawData.currency0.toId(), withdrawData.currency0Amount);
+            manager.burn(address(this), withdrawData.currency0.toId(), withdrawData.currency0Amount);
             // take the currency0 from the pool and send it to the `to` address
-            poolManager.take(withdrawData.currency0, withdrawData.to, withdrawData.currency0Amount);
+            manager.take(withdrawData.currency0, withdrawData.to, withdrawData.currency0Amount);
         }
 
         // if the amount of currency1 is positive, burn the currency1 from the hook
         if (withdrawData.currency1Amount > 0) {
             // burn the currency1 from the hook
-            poolManager.burn(address(this), withdrawData.currency1.toId(), withdrawData.currency1Amount);
+            manager.burn(address(this), withdrawData.currency1.toId(), withdrawData.currency1Amount);
             // take the currency1 from the pool and send it to the `to` address
-            poolManager.take(withdrawData.currency1, withdrawData.to, withdrawData.currency1Amount);
+            manager.take(withdrawData.currency1, withdrawData.to, withdrawData.currency1Amount);
         }
     }
 
@@ -618,7 +618,8 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * updates order state to track filled amounts.
      */
     function _fillOrder(PoolKey calldata key, int24 tickLower, bool zeroForOne) internal virtual {
-        IPoolManager poolManager = poolManager();
+        // slither-disable-start calls-loop
+        IPoolManager manager = poolManager();
         OrderIdLibrary.OrderId orderId = getOrderId(key, tickLower, zeroForOne);
 
         // if the order is not default (not initialized), fill it
@@ -633,7 +634,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
             _setOrderId(key, tickLower, zeroForOne, ORDER_ID_DEFAULT);
 
             // modify the liquidity to remove the order liquidity from the pool
-            (BalanceDelta delta,) = poolManager.modifyLiquidity(
+            (BalanceDelta delta,) = manager.modifyLiquidity(
                 key,
                 ModifyLiquidityParams({
                     tickLower: tickLower,
@@ -644,17 +645,19 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
                 ZERO_BYTES
             );
 
+            // slither-disable-next-line uninitialized-local
             uint128 amount0;
+            // slither-disable-next-line uninitialized-local
             uint128 amount1;
 
             // if the amount of currency0 is positive, mint the currency0 to the hook
             if (delta.amount0() > 0) {
-                poolManager.mint(address(this), key.currency0.toId(), amount0 = uint128(delta.amount0()));
+                manager.mint(address(this), key.currency0.toId(), amount0 = uint128(delta.amount0()));
             }
 
             // if the amount of currency1 is positive, mint the currency1 to the hook
             if (delta.amount1() > 0) {
-                poolManager.mint(address(this), key.currency1.toId(), amount1 = uint128(delta.amount1()));
+                manager.mint(address(this), key.currency1.toId(), amount1 = uint128(delta.amount1()));
             }
 
             // add the amount of currency0 and currency1 to the order info
@@ -669,6 +672,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
 
             // emit the fill event
             emit Fill(orderId, key, tickLower, zeroForOne);
+            // slither-disable-end calls-loop
         }
     }
 

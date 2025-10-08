@@ -250,7 +250,7 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
         returns (bytes memory returnData)
     {
         PoolKey memory key = poolKey();
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
 
         CallbackData memory data = abi.decode(rawData, (CallbackData));
 
@@ -259,7 +259,7 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
         data.params.salt = keccak256(abi.encode(data.sender, data.params.salt));
 
         // Get liquidity modification deltas
-        (BalanceDelta callerDelta, BalanceDelta feesAccrued) = poolManager.modifyLiquidity(key, data.params, "");
+        (BalanceDelta callerDelta, BalanceDelta feesAccrued) = manager.modifyLiquidity(key, data.params, "");
 
         // Calculate the principal delta
         BalanceDelta principalDelta = callerDelta - feesAccrued;
@@ -267,18 +267,18 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
         // Handle each currency amount based on its sign after applying the liquidity modification
         if (principalDelta.amount0() < 0) {
             // If amount0 is negative, send tokens from the sender to the pool
-            key.currency0.settle(poolManager, data.sender, uint256(int256(-principalDelta.amount0())), false);
+            key.currency0.settle(manager, data.sender, uint256(int256(-principalDelta.amount0())), false);
         } else {
             // If amount0 is positive, send tokens from the pool to the sender
-            key.currency0.take(poolManager, data.sender, uint256(int256(principalDelta.amount0())), false);
+            key.currency0.take(manager, data.sender, uint256(int256(principalDelta.amount0())), false);
         }
 
         if (principalDelta.amount1() < 0) {
             // If amount1 is negative, send tokens from the sender to the pool
-            key.currency1.settle(poolManager, data.sender, uint256(int256(-principalDelta.amount1())), false);
+            key.currency1.settle(manager, data.sender, uint256(int256(-principalDelta.amount1())), false);
         } else {
             // If amount1 is positive, send tokens from the pool to the sender
-            key.currency1.take(poolManager, data.sender, uint256(int256(principalDelta.amount1())), false);
+            key.currency1.take(manager, data.sender, uint256(int256(principalDelta.amount1())), false);
         }
 
         // Handle any accrued fees (by default, transfer all fees to the sender)
@@ -306,11 +306,11 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
         virtual
     {
         PoolKey memory key = poolKey();
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
 
         // Send any accrued fees to the sender
-        key.currency0.take(poolManager, data.sender, uint256(int256(feesAccrued.amount0())), false);
-        key.currency1.take(poolManager, data.sender, uint256(int256(feesAccrued.amount1())), false);
+        key.currency0.take(manager, data.sender, uint256(int256(feesAccrued.amount0())), false);
+        key.currency1.take(manager, data.sender, uint256(int256(feesAccrued.amount1())), false);
     }
 
     /**

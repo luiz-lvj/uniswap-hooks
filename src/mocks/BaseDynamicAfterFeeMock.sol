@@ -29,12 +29,12 @@ contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
         uint256,
         uint256 feeAmount
     ) internal override {
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
 
         // Burn ERC-6909 and take underlying tokens
-        unspecified.settle(poolManager, address(this), feeAmount, true);
-        unspecified.take(poolManager, address(this), feeAmount, false);
+        unspecified.settle(manager, address(this), feeAmount, true);
+        unspecified.take(manager, address(this), feeAmount, false);
     }
 
     function _getTargetUnspecified(address, PoolKey calldata, SwapParams calldata, bytes calldata)

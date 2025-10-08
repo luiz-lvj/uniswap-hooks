@@ -19,12 +19,11 @@ contract BaseCustomCurveMock is BaseCustomCurve, ERC20 {
         override
         returns (uint256 unspecifiedAmount)
     {
-        PoolKey memory poolKey = poolKey();
+        PoolKey memory key = poolKey();
 
         bool exactInput = params.amountSpecified < 0;
-        (Currency specified, Currency unspecified) = (params.zeroForOne == exactInput)
-            ? (poolKey.currency0, poolKey.currency1)
-            : (poolKey.currency1, poolKey.currency0);
+        (Currency specified, Currency unspecified) =
+            (params.zeroForOne == exactInput) ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
         uint256 specifiedAmount = exactInput ? uint256(-params.amountSpecified) : uint256(params.amountSpecified);
         Currency input = exactInput ? specified : unspecified;
         Currency output = exactInput ? unspecified : specified;

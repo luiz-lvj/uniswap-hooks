@@ -18,7 +18,11 @@ import {ERC4626YieldSourceMock} from "./ReHypothecationERC4626Mock.sol";
 contract NativeYieldSourceMock is ERC20 {
     using Math for *;
 
+    /// @dev Error thrown when attempting to use an invalid amount.
     error InvalidAmount();
+
+    /// @dev Error thrown when attempting to use an invalid target.
+    error InvalidTarget();
 
     constructor() ERC20("NativeYieldSourceMock", "NYSM") {}
 
@@ -48,6 +52,7 @@ contract NativeYieldSourceMock is ERC20 {
     }
 
     function withdraw(uint256 assets, address to) public payable {
+        if (to == address(0)) revert InvalidTarget();
         uint256 shares = _convertToShares(assets);
         _burn(msg.sender, shares);
         payable(to).transfer(assets);
@@ -60,22 +65,26 @@ contract NativeYieldSourceMock is ERC20 {
 contract ReHypothecationNativeMock is ReHypothecationHook {
     using SafeERC20 for IERC20;
 
-    address private _yieldSource0;
-    address private _yieldSource1;
+    address private immutable yieldSource0;
+    address private immutable yieldSource1;
 
     /// @dev Error thrown when attempting to use an unsupported currency.
     error UnsupportedCurrency();
 
+    /// @dev Error thrown when attempting to use an invalid yield source.
+    error InvalidYieldSource();
+
     constructor(address yieldSource0_, address yieldSource1_) ERC20("ReHypothecatatedShare", "RHM") {
-        _yieldSource0 = yieldSource0_;
-        _yieldSource1 = yieldSource1_;
+        if (yieldSource0_ == address(0) || yieldSource1_ == address(0)) revert InvalidYieldSource();
+        yieldSource0 = yieldSource0_;
+        yieldSource1 = yieldSource1_;
     }
 
     /// @inheritdoc ReHypothecationHook
     function getCurrencyYieldSource(Currency currency) public view override returns (address) {
         PoolKey memory poolKey = getPoolKey();
-        if (currency == poolKey.currency0) return _yieldSource0;
-        if (currency == poolKey.currency1) return _yieldSource1;
+        if (currency == poolKey.currency0) return yieldSource0;
+        if (currency == poolKey.currency1) return yieldSource1;
         revert UnsupportedCurrency();
     }
 
@@ -114,6 +123,7 @@ contract ReHypothecationNativeMock is ReHypothecationHook {
         if (currency.isAddressZero()) {
             if (msg.value < amount) revert InvalidMsgValue();
             if (msg.value > amount) {
+                // slither-disable-next-line arbitrary-send-eth
                 (bool success,) = msg.sender.call{value: msg.value - amount}("");
                 if (!success) revert RefundFailed();
             }

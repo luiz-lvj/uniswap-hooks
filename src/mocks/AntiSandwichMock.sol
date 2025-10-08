@@ -32,15 +32,15 @@ contract AntiSandwichMock is AntiSandwichHook {
         uint256,
         uint256 feeAmount
     ) internal override {
-        IPoolManager poolManager = poolManager();
+        IPoolManager manager = poolManager();
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
         (uint256 amount0, uint256 amount1) = unspecified == key.currency0
             ? (uint256(uint128(feeAmount)), uint256(0))
             : (uint256(0), uint256(uint128(feeAmount)));
 
         // settle and donate execess tokens to the pool
-        poolManager.donate(key, amount0, amount1, "");
-        unspecified.settle(poolManager, address(this), feeAmount, true);
+        manager.donate(key, amount0, amount1, "");
+        unspecified.settle(manager, address(this), feeAmount, true);
     }
 
     // Exclude from coverage report

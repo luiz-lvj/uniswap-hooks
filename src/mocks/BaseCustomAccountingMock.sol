@@ -61,8 +61,8 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
         override
         returns (bytes memory, uint256 liquidity)
     {
-        IPoolManager poolManager = poolManager();
-        liquidity = FullMath.mulDiv(params.liquidity, poolManager.getLiquidity(poolKey().toId()), totalSupply());
+        IPoolManager manager = poolManager();
+        liquidity = FullMath.mulDiv(params.liquidity, manager.getLiquidity(poolKey().toId()), totalSupply());
 
         return (
             abi.encode(

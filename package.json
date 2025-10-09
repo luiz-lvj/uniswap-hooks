@@ -1,5 +1,5 @@
 {
-  "name": "uniswap-hooks-test",
+  "name": "uniswap-hooks",
   "version": "1.2.0",
   "description": "Solidity library for secure and modular Uniswap hooks.",
   "files": [

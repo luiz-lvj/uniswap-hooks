@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Uniswap Hooks (last updated v1.1.0) (test/utils/interfaces/IPoolManagerEvents.sol)
+// OpenZeppelin Uniswap Hooks (last updated v1.2.0) (test/utils/interfaces/IPoolManagerEvents.sol)
 pragma solidity ^0.8.26;
 
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";

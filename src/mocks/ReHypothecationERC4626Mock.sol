@@ -35,8 +35,8 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
 
     constructor(address yieldSource0_, address yieldSource1_) ERC20("ReHypothecatatedShare", "RHM") {
         if (yieldSource0_ == address(0) || yieldSource1_ == address(0)) revert InvalidYieldSource();
-        yieldSource0 = yieldSource0;
-        yieldSource1 = yieldSource1;
+        yieldSource0 = yieldSource0_;
+        yieldSource1 = yieldSource1_;
     }
 
     /// @dev Override to disable native currency, which is not supported by ERC-4626 yield sources.

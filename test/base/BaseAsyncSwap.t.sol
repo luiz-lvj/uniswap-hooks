@@ -8,6 +8,7 @@ import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 import {ProtocolFeeLibrary} from "@uniswap/v4-core/src/libraries/ProtocolFeeLibrary.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
@@ -28,7 +29,9 @@ contract BaseAsyncSwapTest is HookTest {
         deployCodeTo("src/mocks/BaseAsyncSwapMock.sol:BaseAsyncSwapMock", address(hook));
 
         deployMintAndApprove2Currencies();
-        (key,) = initPoolAndAddLiquidity(currency0, currency1, IHooks(address(hook)), 0, 60, SQRT_PRICE_1_1);
+        (key,) = initPoolAndAddLiquidity(
+            currency0, currency1, IHooks(address(hook)), LPFeeLibrary.DYNAMIC_FEE_FLAG, SQRT_PRICE_1_1
+        );
 
         vm.label(Currency.unwrap(currency0), "currency0");
         vm.label(Currency.unwrap(currency1), "currency1");

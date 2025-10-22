@@ -4,7 +4,7 @@
 :BaseDynamicAfterFee: pass:normal[xref:fee.adoc#BaseDynamicAfterFee[`BaseDynamicAfterFee`]]
 :xref-BaseDynamicFee-_getFee-struct-PoolKey-: xref:fee.adoc#BaseDynamicFee-_getFee-struct-PoolKey-
 :xref-BaseDynamicFee-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:fee.adoc#BaseDynamicFee-_afterInitialize-address-struct-PoolKey-uint160-int24-
-:xref-BaseDynamicFee-poke-struct-PoolKey-: xref:fee.adoc#BaseDynamicFee-poke-struct-PoolKey-
+:xref-BaseDynamicFee-_poke-struct-PoolKey-: xref:fee.adoc#BaseDynamicFee-_poke-struct-PoolKey-
 :xref-BaseDynamicFee-getHookPermissions--: xref:fee.adoc#BaseDynamicFee-getHookPermissions--
 :xref-BaseHook-poolManager--: xref:base.adoc#BaseHook-poolManager--
 :xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
@@ -28,8 +28,6 @@
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseDynamicFee-NotDynamicFee--: xref:fee.adoc#BaseDynamicFee-NotDynamicFee--
-:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
-:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 :xref-BaseOverrideFee-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:fee.adoc#BaseOverrideFee-_afterInitialize-address-struct-PoolKey-uint160-int24-
@@ -57,8 +55,6 @@
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseOverrideFee-NotDynamicFee--: xref:fee.adoc#BaseOverrideFee-NotDynamicFee--
-:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
-:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 :xref-BaseDynamicAfterFee-_transientTargetUnspecifiedAmount--: xref:fee.adoc#BaseDynamicAfterFee-_transientTargetUnspecifiedAmount--
@@ -94,8 +90,6 @@
 :xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookFee-bytes32-address-uint128-uint128-
 :xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-: xref:interfaces.adoc#IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-
 :xref-IHookEvents-HookBonus-bytes32-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookBonus-bytes32-uint128-uint128-
-:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
-:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 = Fee
@@ -114,7 +108,7 @@ Hooks for managing and customizing pool fees, including dynamic fee adjustments,
 :NotDynamicFee: pass:normal[xref:#BaseDynamicFee-NotDynamicFee--[`++NotDynamicFee++`]]
 :_getFee: pass:normal[xref:#BaseDynamicFee-_getFee-struct-PoolKey-[`++_getFee++`]]
 :_afterInitialize: pass:normal[xref:#BaseDynamicFee-_afterInitialize-address-struct-PoolKey-uint160-int24-[`++_afterInitialize++`]]
-:poke: pass:normal[xref:#BaseDynamicFee-poke-struct-PoolKey-[`++poke++`]]
+:_poke: pass:normal[xref:#BaseDynamicFee-_poke-struct-PoolKey-[`++_poke++`]]
 :getHookPermissions: pass:normal[xref:#BaseDynamicFee-getHookPermissions--[`++getHookPermissions++`]]
 
 [.contract]
@@ -139,7 +133,7 @@ _Available since v0.1.0_
 --
 * {xref-BaseDynamicFee-_getFee-struct-PoolKey-}[`++_getFee(key)++`]
 * {xref-BaseDynamicFee-_afterInitialize-address-struct-PoolKey-uint160-int24-}[`++_afterInitialize(, key, , )++`]
-* {xref-BaseDynamicFee-poke-struct-PoolKey-}[`++poke(key)++`]
+* {xref-BaseDynamicFee-_poke-struct-PoolKey-}[`++_poke(key)++`]
 * {xref-BaseDynamicFee-getHookPermissions--}[`++getHookPermissions()++`]
 
 [.contract-subindex-inherited]
@@ -178,8 +172,6 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
-* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
 * {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
 * {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
 
@@ -201,22 +193,15 @@ Returns a fee, denominated in hundredths of a bip, to be applied to the pool aft
 Set the fee after the pool is initialized.
 
 [.contract-item]
-[[BaseDynamicFee-poke-struct-PoolKey-]]
-==== `[.contract-item-name]#++poke++#++(struct PoolKey key)++` [.item-kind]#public#
+[[BaseDynamicFee-_poke-struct-PoolKey-]]
+==== `[.contract-item-name]#++_poke++#++(struct PoolKey key)++` [.item-kind]#internal#
 
-Updates the dynamic LP fee for the given pool, which must have a key
-that contains this hook's address.
+Updates the dynamic LP fee for the given pool
 
-WARNING: This function can be called by anyone at any time. If `_getFee` implementation
-depends on external conditions (e.g., oracle prices, other pool states, token balances),
-it may be vulnerable to manipulation. An attacker could potentially:
-1. Manipulate the external conditions that `_getFee` depends on
-2. Call `poke()` to update the fee to a more favorable rate
-3. Execute trades at the manipulated fee rate
-
-Inheriting contracts should consider implementing access controls on this function,
-make the logic in `_getFee` resistant to short-term manipulation, or accept the risk
-of fee manipulation.
+NOTE: It can be called internally at any point in the pool's lifecycle to update the fee
+given the current market conditions. Alternatively, it can be wrapped and exposed publicly
+to be externally called by an authorized party. If exposed, it must be properly protected
+and access control is recommended.
 
 [.contract-item]
 [[BaseDynamicFee-getHookPermissions--]]
@@ -296,8 +281,6 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
-* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
 * {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
 * {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
 
@@ -442,8 +425,6 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
-* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
 * {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
 * {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
 

@@ -38,8 +38,6 @@
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-LiquidityPenaltyHook-BlockNumberOffsetTooLow--: xref:general.adoc#LiquidityPenaltyHook-BlockNumberOffsetTooLow--
 :xref-LiquidityPenaltyHook-NoLiquidityToReceiveDonation--: xref:general.adoc#LiquidityPenaltyHook-NoLiquidityToReceiveDonation--
-:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
-:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 :xref-AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:general.adoc#AntiSandwichHook-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
@@ -76,8 +74,6 @@
 :xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookFee-bytes32-address-uint128-uint128-
 :xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-: xref:interfaces.adoc#IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-
 :xref-IHookEvents-HookBonus-bytes32-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookBonus-bytes32-uint128-uint128-
-:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
-:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 :xref-LimitOrderHook-_afterInitialize-address-struct-PoolKey-uint160-int24-: xref:general.adoc#LimitOrderHook-_afterInitialize-address-struct-PoolKey-uint160-int24-
@@ -127,8 +123,6 @@
 :xref-LimitOrderHook-CrossedRange--: xref:general.adoc#LimitOrderHook-CrossedRange--
 :xref-LimitOrderHook-Filled--: xref:general.adoc#LimitOrderHook-Filled--
 :xref-LimitOrderHook-NotFilled--: xref:general.adoc#LimitOrderHook-NotFilled--
-:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
-:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 :xref-LimitOrderHook-ZERO_BYTES-bytes: xref:general.adoc#LimitOrderHook-ZERO_BYTES-bytes
@@ -182,8 +176,6 @@
 :xref-ReHypothecationHook-ZeroShares--: xref:general.adoc#ReHypothecationHook-ZeroShares--
 :xref-ReHypothecationHook-InvalidMsgValue--: xref:general.adoc#ReHypothecationHook-InvalidMsgValue--
 :xref-ReHypothecationHook-RefundFailed--: xref:general.adoc#ReHypothecationHook-RefundFailed--
-:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
-:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 = General
@@ -305,8 +297,6 @@ _Available since v0.1.1_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
-* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
 * {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
 * {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
 
@@ -562,8 +552,6 @@ _Available since v1.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
-* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
 * {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
 * {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
 
@@ -764,8 +752,6 @@ _Available since v1.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
-* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
 * {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
 * {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
 
@@ -1225,8 +1211,6 @@ _Available since v1.2.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
-* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
 * {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
 * {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
 

@@ -32,8 +32,6 @@
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseOracleHook-IncreaseObservationCardinalityNext-PoolId-uint16-uint16-: xref:oracles.adoc#BaseOracleHook-IncreaseObservationCardinalityNext-PoolId-uint16-uint16-
 :xref-BaseOracleHook-PoolNotInitialized--: xref:oracles.adoc#BaseOracleHook-PoolNotInitialized--
-:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
-:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 :xref-OracleHookWithV3Adapters-constructor-int24-: xref:oracles.adoc#OracleHookWithV3Adapters-constructor-int24-
@@ -70,8 +68,6 @@
 :xref-OracleHookWithV3Adapters-AdaptersDeployed-PoolId-address-address-: xref:oracles.adoc#OracleHookWithV3Adapters-AdaptersDeployed-PoolId-address-address-
 :xref-BaseOracleHook-IncreaseObservationCardinalityNext-PoolId-uint16-uint16-: xref:oracles.adoc#BaseOracleHook-IncreaseObservationCardinalityNext-PoolId-uint16-uint16-
 :xref-BaseOracleHook-PoolNotInitialized--: xref:oracles.adoc#BaseOracleHook-PoolNotInitialized--
-:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
-:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 = Oracles
@@ -171,8 +167,6 @@ A hook that enables a Uniswap V4 pool to record price observations and expose an
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
-* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
 * {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
 * {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
 
@@ -351,8 +345,6 @@ A hook that enables a Uniswap V4 pool to record price observations and expose an
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
-* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
 * {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
 * {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
 

@@ -47,8 +47,6 @@
 :xref-BaseCustomAccounting-LiquidityOnlyViaHook--: xref:base.adoc#BaseCustomAccounting-LiquidityOnlyViaHook--
 :xref-BaseCustomAccounting-InvalidNativeValue--: xref:base.adoc#BaseCustomAccounting-InvalidNativeValue--
 :xref-BaseCustomAccounting-AlreadyInitialized--: xref:base.adoc#BaseCustomAccounting-AlreadyInitialized--
-:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
-:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 :BaseCustomAccounting: pass:normal[xref:base.adoc#BaseCustomAccounting[`BaseCustomAccounting`]]
@@ -99,13 +97,9 @@
 :xref-BaseCustomAccounting-LiquidityOnlyViaHook--: xref:base.adoc#BaseCustomAccounting-LiquidityOnlyViaHook--
 :xref-BaseCustomAccounting-InvalidNativeValue--: xref:base.adoc#BaseCustomAccounting-InvalidNativeValue--
 :xref-BaseCustomAccounting-AlreadyInitialized--: xref:base.adoc#BaseCustomAccounting-AlreadyInitialized--
-:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
-:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 :xref-BaseHook-onlyPoolManager--: xref:base.adoc#BaseHook-onlyPoolManager--
-:xref-BaseHook-onlySelf--: xref:base.adoc#BaseHook-onlySelf--
-:xref-BaseHook-onlyValidPools-contract-IHooks-: xref:base.adoc#BaseHook-onlyValidPools-contract-IHooks-
 :xref-BaseHook-constructor--: xref:base.adoc#BaseHook-constructor--
 :xref-BaseHook-poolManager--: xref:base.adoc#BaseHook-poolManager--
 :xref-BaseHook-getHookPermissions--: xref:base.adoc#BaseHook-getHookPermissions--
@@ -130,8 +124,6 @@
 :xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
-:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
-:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 :xref-BaseAsyncSwap-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-: xref:base.adoc#BaseAsyncSwap-_beforeSwap-address-struct-PoolKey-struct-SwapParams-bytes-
@@ -162,8 +154,6 @@
 :xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookFee-bytes32-address-uint128-uint128-
 :xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-: xref:interfaces.adoc#IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-
 :xref-IHookEvents-HookBonus-bytes32-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookBonus-bytes32-uint128-uint128-
-:xref-BaseHook-NotSelf--: xref:base.adoc#BaseHook-NotSelf--
-:xref-BaseHook-InvalidPool--: xref:base.adoc#BaseHook-InvalidPool--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
 :xref-BaseHook-NotPoolManager--: xref:base.adoc#BaseHook-NotPoolManager--
 = Base
@@ -330,8 +320,6 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
-* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
 * {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
 * {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
 
@@ -613,8 +601,6 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
-* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
 * {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
 * {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
 
@@ -692,14 +678,10 @@ Calculate the amount of tokens to use and liquidity shares to mint for an add li
 Set the hook permissions, specifically `beforeInitialize`, `beforeAddLiquidity`, `beforeRemoveLiquidity`,
 `beforeSwap`, and `beforeSwapReturnDelta`
 
-:NotSelf: pass:normal[xref:#BaseHook-NotSelf--[`++NotSelf++`]]
-:InvalidPool: pass:normal[xref:#BaseHook-InvalidPool--[`++InvalidPool++`]]
 :HookNotImplemented: pass:normal[xref:#BaseHook-HookNotImplemented--[`++HookNotImplemented++`]]
 :NotPoolManager: pass:normal[xref:#BaseHook-NotPoolManager--[`++NotPoolManager++`]]
 :constructor: pass:normal[xref:#BaseHook-constructor--[`++constructor++`]]
 :onlyPoolManager: pass:normal[xref:#BaseHook-onlyPoolManager--[`++onlyPoolManager++`]]
-:onlySelf: pass:normal[xref:#BaseHook-onlySelf--[`++onlySelf++`]]
-:onlyValidPools: pass:normal[xref:#BaseHook-onlyValidPools-contract-IHooks-[`++onlyValidPools++`]]
 :poolManager: pass:normal[xref:#BaseHook-poolManager--[`++poolManager++`]]
 :getHookPermissions: pass:normal[xref:#BaseHook-getHookPermissions--[`++getHookPermissions++`]]
 :_validateHookAddress: pass:normal[xref:#BaseHook-_validateHookAddress-contract-BaseHook-[`++_validateHookAddress++`]]
@@ -751,8 +733,6 @@ _Available since v0.1.0_
 .Modifiers
 --
 * {xref-BaseHook-onlyPoolManager--}[`++onlyPoolManager()++`]
-* {xref-BaseHook-onlySelf--}[`++onlySelf()++`]
-* {xref-BaseHook-onlyValidPools-contract-IHooks-}[`++onlyValidPools(hooks)++`]
 --
 
 [.contract-index]
@@ -791,8 +771,6 @@ _Available since v0.1.0_
 [.contract-index]
 .Errors
 --
-* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
-* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
 * {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
 * {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
 
@@ -804,18 +782,6 @@ _Available since v0.1.0_
 [.contract-item]
 [[BaseHook-onlyPoolManager--]]
 ==== `[.contract-item-name]#++onlyPoolManager++#++()++` [.item-kind]#modifier#
-
-[.contract-item]
-[[BaseHook-onlySelf--]]
-==== `[.contract-item-name]#++onlySelf++#++()++` [.item-kind]#modifier#
-
-Restrict the function to only be callable by the hook itself.
-
-[.contract-item]
-[[BaseHook-onlyValidPools-contract-IHooks-]]
-==== `[.contract-item-name]#++onlyValidPools++#++(contract IHooks hooks)++` [.item-kind]#modifier#
-
-Restrict the function to only be called for a valid pool.
 
 [.contract-item]
 [[BaseHook-constructor--]]
@@ -954,18 +920,6 @@ Hook implementation for `afterDonate`, to be overridden by the inheriting hook. 
 flag must be set to true in the `getHookPermissions` function.
 
 [.contract-item]
-[[BaseHook-NotSelf--]]
-==== `[.contract-item-name]#++NotSelf++#++()++` [.item-kind]#error#
-
-The hook is not the caller.
-
-[.contract-item]
-[[BaseHook-InvalidPool--]]
-==== `[.contract-item-name]#++InvalidPool++#++()++` [.item-kind]#error#
-
-The pool is not authorized to use this hook.
-
-[.contract-item]
 [[BaseHook-HookNotImplemented--]]
 ==== `[.contract-item-name]#++HookNotImplemented++#++()++` [.item-kind]#error#
 
@@ -1078,8 +1032,6 @@ _Available since v0.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-NotSelf--}[`++NotSelf()++`]
-* {xref-BaseHook-InvalidPool--}[`++InvalidPool()++`]
 * {xref-BaseHook-HookNotImplemented--}[`++HookNotImplemented()++`]
 * {xref-BaseHook-NotPoolManager--}[`++NotPoolManager()++`]
 

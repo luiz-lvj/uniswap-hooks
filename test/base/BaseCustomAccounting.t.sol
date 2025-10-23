@@ -34,6 +34,8 @@ contract BaseCustomAccountingTest is HookTest {
     int24 constant MIN_TICK = -887220;
     int24 constant MAX_TICK = 887220;
 
+    address constant HOOK_DEPLOYMENT_ADDRESS = 0x1000000000000000000000000000000000002A00;
+
     PoolId id;
 
     function setUp() public {
@@ -96,7 +98,7 @@ contract BaseCustomAccountingTest is HookTest {
 
     function test_addLiquidity_native_succeeds() public {
         BaseCustomAccountingMock nativeHook =
-            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
+            BaseCustomAccountingMock(payable(HOOK_DEPLOYMENT_ADDRESS));
         deployCodeTo("src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", address(nativeHook));
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -132,7 +134,7 @@ contract BaseCustomAccountingTest is HookTest {
 
     function test_addLiquidity_nativeRefund_succeeds() public {
         BaseCustomAccountingMock nativeHook =
-            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
+            BaseCustomAccountingMock(payable(HOOK_DEPLOYMENT_ADDRESS));
         deployCodeTo("src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", address(nativeHook));
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -169,7 +171,7 @@ contract BaseCustomAccountingTest is HookTest {
 
     function test_addLiquidity_partialNativeRefundFeesAccrued_succeeds() public {
         BaseCustomAccountingMock nativeHook =
-            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
+            BaseCustomAccountingMock(payable(HOOK_DEPLOYMENT_ADDRESS));
         deployCodeTo("src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", address(nativeHook));
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -216,7 +218,7 @@ contract BaseCustomAccountingTest is HookTest {
 
     function test_addLiquidity_fullNativeRefundFeesAccrued_succeeds() public {
         BaseCustomAccountingMock nativeHook =
-            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
+            BaseCustomAccountingMock(payable(HOOK_DEPLOYMENT_ADDRESS));
         deployCodeTo("src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", address(nativeHook));
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -262,7 +264,7 @@ contract BaseCustomAccountingTest is HookTest {
 
     function test_addLiquidity_keepFeesAccrued_succeeds() public {
         BaseCustomAccountingFeeMock nativeHook =
-            BaseCustomAccountingFeeMock(payable(0x1000000000000000000000000000000000002A00));
+            BaseCustomAccountingFeeMock(payable(HOOK_DEPLOYMENT_ADDRESS));
         deployCodeTo("src/mocks/BaseCustomAccountingFeeMock.sol:BaseCustomAccountingFeeMock", address(nativeHook));
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -448,7 +450,7 @@ contract BaseCustomAccountingTest is HookTest {
 
     function test_addLiquidity_native_invalidValue_revert() public {
         BaseCustomAccountingMock nativeHook =
-            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
+            BaseCustomAccountingMock(payable(HOOK_DEPLOYMENT_ADDRESS));
         deployCodeTo("src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", address(nativeHook));
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -657,7 +659,7 @@ contract BaseCustomAccountingTest is HookTest {
 
     function test_removeLiquidity_native_succeeds() public {
         BaseCustomAccountingMock nativeHook =
-            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
+            BaseCustomAccountingMock(payable(HOOK_DEPLOYMENT_ADDRESS));
         deployCodeTo("src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", address(nativeHook));
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -789,7 +791,7 @@ contract BaseCustomAccountingTest is HookTest {
 
     function test_removeLiquidity_notInitialized_reverts() public {
         BaseCustomAccountingMock uninitializedHook =
-            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
+            BaseCustomAccountingMock(payable(HOOK_DEPLOYMENT_ADDRESS));
         deployCodeTo("src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", address(uninitializedHook));
 
         vm.expectRevert(BaseCustomAccounting.PoolNotInitialized.selector);
@@ -800,7 +802,7 @@ contract BaseCustomAccountingTest is HookTest {
 
     function test_addLiquidity_notInitialized_reverts() public {
         BaseCustomAccountingMock uninitializedHook =
-            BaseCustomAccountingMock(payable(0x1000000000000000000000000000000000002A00));
+            BaseCustomAccountingMock(payable(HOOK_DEPLOYMENT_ADDRESS));
         deployCodeTo("src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", address(uninitializedHook));
 
         vm.expectRevert(BaseCustomAccounting.PoolNotInitialized.selector);

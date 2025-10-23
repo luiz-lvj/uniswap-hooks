@@ -164,9 +164,10 @@ contract LiquidityPenaltyHook is BaseHook {
             // receive the donation, then the liquidity removal is not possible and the offset must be awaited.
             if (poolManager().getLiquidity(poolId) == 0) revert NoLiquidityToReceiveDonation();
 
-            poolManager().donate(
-                key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
-            );
+            poolManager()
+                .donate(
+                    key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
+                );
 
             return (this.afterRemoveLiquidity.selector, liquidityPenalty - withheldFees);
         }

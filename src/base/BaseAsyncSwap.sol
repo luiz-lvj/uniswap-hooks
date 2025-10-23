@@ -7,7 +7,9 @@ pragma solidity ^0.8.26;
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {
-    BeforeSwapDelta, BeforeSwapDeltaLibrary, toBeforeSwapDelta
+    BeforeSwapDelta,
+    BeforeSwapDeltaLibrary,
+    toBeforeSwapDelta
 } from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";

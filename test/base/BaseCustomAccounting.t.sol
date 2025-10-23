@@ -40,14 +40,12 @@ contract BaseCustomAccountingTest is HookTest {
         deployFreshManagerAndRouters();
 
         hook = BaseCustomAccountingMock(
-            payable(
-                address(
+            payable(address(
                     uint160(
                         Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
                             | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
                     )
-                )
-            )
+                ))
         );
         deployCodeTo("src/mocks/BaseCustomAccountingMock.sol:BaseCustomAccountingMock", address(hook));
 

@@ -28,9 +28,9 @@ contract BaseDynamicAfterFeeTest is HookTest {
         deployFreshManagerAndRouters();
 
         dynamicFeesHook = BaseDynamicAfterFeeMock(
-            payable(
-                address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG))
-            )
+            payable(address(
+                    uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG)
+                ))
         );
         deployCodeTo("src/mocks/BaseDynamicAfterFeeMock.sol:BaseDynamicAfterFeeMock", address(dynamicFeesHook));
 
@@ -64,10 +64,7 @@ contract BaseDynamicAfterFeeTest is HookTest {
         // Simulate the swap quote in an unhooked pool.
         (uint256 unhookedQuote,) = quoter.quoteExactInputSingle(
             IV4Quoter.QuoteExactSingleParams({
-                poolKey: unhookedKey,
-                zeroForOne: true,
-                exactAmount: swapAmount,
-                hookData: ZERO_BYTES
+                poolKey: unhookedKey, zeroForOne: true, exactAmount: swapAmount, hookData: ZERO_BYTES
             })
         );
 
@@ -94,10 +91,7 @@ contract BaseDynamicAfterFeeTest is HookTest {
 
         (uint256 unhookedNativeQuote,) = quoter.quoteExactInputSingle(
             IV4Quoter.QuoteExactSingleParams({
-                poolKey: nativeUnhookedKey,
-                zeroForOne: true,
-                exactAmount: swapAmount,
-                hookData: ZERO_BYTES
+                poolKey: nativeUnhookedKey, zeroForOne: true, exactAmount: swapAmount, hookData: ZERO_BYTES
             })
         );
 
@@ -120,10 +114,7 @@ contract BaseDynamicAfterFeeTest is HookTest {
 
         (uint256 unhookedQuote,) = quoter.quoteExactInputSingle(
             IV4Quoter.QuoteExactSingleParams({
-                poolKey: unhookedKey,
-                zeroForOne: true,
-                exactAmount: swapAmount,
-                hookData: ZERO_BYTES
+                poolKey: unhookedKey, zeroForOne: true, exactAmount: swapAmount, hookData: ZERO_BYTES
             })
         );
 
@@ -156,10 +147,7 @@ contract BaseDynamicAfterFeeTest is HookTest {
 
         (uint256 unhookedQuote,) = quoter.quoteExactOutputSingle(
             IV4Quoter.QuoteExactSingleParams({
-                poolKey: unhookedKey,
-                zeroForOne: true,
-                exactAmount: swapAmount,
-                hookData: ZERO_BYTES
+                poolKey: unhookedKey, zeroForOne: true, exactAmount: swapAmount, hookData: ZERO_BYTES
             })
         );
 
@@ -192,10 +180,7 @@ contract BaseDynamicAfterFeeTest is HookTest {
 
         (uint256 unhookedQuote,) = quoter.quoteExactInputSingle(
             IV4Quoter.QuoteExactSingleParams({
-                poolKey: unhookedKey,
-                zeroForOne: true,
-                exactAmount: swapAmount,
-                hookData: ZERO_BYTES
+                poolKey: unhookedKey, zeroForOne: true, exactAmount: swapAmount, hookData: ZERO_BYTES
             })
         );
 
@@ -224,10 +209,7 @@ contract BaseDynamicAfterFeeTest is HookTest {
 
         (uint256 unhookedQuote,) = quoter.quoteExactOutputSingle(
             IV4Quoter.QuoteExactSingleParams({
-                poolKey: unhookedKey,
-                zeroForOne: true,
-                exactAmount: swapAmount,
-                hookData: ZERO_BYTES
+                poolKey: unhookedKey, zeroForOne: true, exactAmount: swapAmount, hookData: ZERO_BYTES
             })
         );
 
@@ -272,10 +254,7 @@ contract BaseDynamicAfterFeeTest is HookTest {
 
         (uint256 unhookedQuote,) = quoter.quoteExactInputSingle(
             IV4Quoter.QuoteExactSingleParams({
-                poolKey: unhookedKey,
-                zeroForOne: zeroForOne,
-                exactAmount: amountSpecified,
-                hookData: ZERO_BYTES
+                poolKey: unhookedKey, zeroForOne: zeroForOne, exactAmount: amountSpecified, hookData: ZERO_BYTES
             })
         );
 
@@ -302,10 +281,7 @@ contract BaseDynamicAfterFeeTest is HookTest {
 
         (uint256 unhookedQuote,) = quoter.quoteExactOutputSingle(
             IV4Quoter.QuoteExactSingleParams({
-                poolKey: unhookedKey,
-                zeroForOne: zeroForOne,
-                exactAmount: amountSpecified,
-                hookData: ZERO_BYTES
+                poolKey: unhookedKey, zeroForOne: zeroForOne, exactAmount: amountSpecified, hookData: ZERO_BYTES
             })
         );
 

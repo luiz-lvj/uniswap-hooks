@@ -125,10 +125,7 @@ contract ReHypothecationHookNativeTest is HookTest, BalanceDeltaAssertions {
         BalanceDelta noHookAddDelta = modifyLiquidityRouter.modifyLiquidity{value: 1e18}(
             noHookKey,
             ModifyLiquidityParams({
-                tickLower: hook.getTickLower(),
-                tickUpper: hook.getTickUpper(),
-                liquidityDelta: int256(shares),
-                salt: 0
+                tickLower: hook.getTickLower(), tickUpper: hook.getTickUpper(), liquidityDelta: int256(shares), salt: 0
             }),
             ""
         );

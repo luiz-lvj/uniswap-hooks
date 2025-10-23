@@ -39,14 +39,12 @@ contract BaseCustomCurveTest is HookTest {
         deployFreshManagerAndRouters();
 
         hook = BaseCustomCurveMock(
-            payable(
-                address(
+            payable(address(
                     uint160(
                         Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
                             | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
                     )
-                )
-            )
+                ))
         );
         deployCodeTo("src/mocks/BaseCustomCurveMock.sol:BaseCustomCurveMock", address(hook));
 

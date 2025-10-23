@@ -217,7 +217,12 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
         PoolKey calldata, /* key */
         SwapParams calldata, /* params */
         bytes calldata /* hookData */
-    ) internal virtual override returns (bytes4, BeforeSwapDelta, uint24) {
+    )
+        internal
+        virtual
+        override
+        returns (bytes4, BeforeSwapDelta, uint24)
+    {
         // Get the liquidity to be used from the amounts currently deposited in the yield sources
         uint256 liquidityToUse = _getLiquidityToUse();
         if (liquidityToUse > 0) _modifyLiquidity(liquidityToUse.toInt256());
@@ -237,7 +242,12 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
         SwapParams calldata, /* params */
         BalanceDelta, /* delta */
         bytes calldata /* hookData */
-    ) internal virtual override returns (bytes4, int128) {
+    )
+        internal
+        virtual
+        override
+        returns (bytes4, int128)
+    {
         // Remove all of the hook owned liquidity from the pool
         uint128 liquidity = _getHookPositionLiquidity();
         if (liquidity > 0) {
@@ -367,16 +377,17 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
      * Positive liquidityDelta adds liquidity, while negative removes it.
      */
     function _modifyLiquidity(int256 liquidityDelta) internal virtual returns (BalanceDelta delta) {
-        (delta,) = poolManager().modifyLiquidity(
-            _poolKey,
-            ModifyLiquidityParams({
-                tickLower: getTickLower(),
-                tickUpper: getTickUpper(),
-                liquidityDelta: liquidityDelta,
-                salt: bytes32(0)
-            }),
-            ""
-        );
+        (delta,) = poolManager()
+            .modifyLiquidity(
+                _poolKey,
+                ModifyLiquidityParams({
+                    tickLower: getTickLower(),
+                    tickUpper: getTickUpper(),
+                    liquidityDelta: liquidityDelta,
+                    salt: bytes32(0)
+                }),
+                ""
+            );
     }
 
     /*

@@ -290,13 +290,15 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // IMPORTANT: `tick` must be valid, i.e. within the range of `MIN_TICK` and `MAX_TICK`, defined in the `TickMath` library and it must be
         // a multiple of `key.tickSpacing`.
         (uint256 amount0Fee, uint256 amount1Fee) = abi.decode(
-            poolManager().unlock(
-                abi.encode(
-                    CallbackData(
-                        CallbackType.Place, abi.encode(PlaceCallbackData(key, msg.sender, zeroForOne, tick, liquidity))
+            poolManager()
+                .unlock(
+                    abi.encode(
+                        CallbackData(
+                            CallbackType.Place,
+                            abi.encode(PlaceCallbackData(key, msg.sender, zeroForOne, tick, liquidity))
+                        )
                     )
-                )
-            ),
+                ),
             (uint256, uint256)
         );
 
@@ -354,16 +356,19 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
         // Note that `amount0Fee` and `amount1Fee` are the fees accrued by the position and will not be transferred to
         // the `to` address. Instead, they will be added to the order info (benefiting the remaining limit order placers).
         (uint256 amount0Fee, uint256 amount1Fee) = abi.decode(
-            poolManager().unlock(
-                abi.encode(
-                    CallbackData(
-                        CallbackType.Cancel,
-                        abi.encode(
-                            CancelCallbackData(key, tickLower, -int256(uint256(liquidity)), to, removingAllLiquidity)
+            poolManager()
+                .unlock(
+                    abi.encode(
+                        CallbackData(
+                            CallbackType.Cancel,
+                            abi.encode(
+                                CancelCallbackData(
+                                    key, tickLower, -int256(uint256(liquidity)), to, removingAllLiquidity
+                                )
+                            )
                         )
                     )
-                )
-            ),
+                ),
             (uint256, uint256)
         );
 
@@ -427,14 +432,15 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
 
         // unlock the callback to the poolManager, the callback will trigger `unlockCallback`
         // and return the liquidity to the `to` address.
-        poolManager().unlock(
-            abi.encode(
-                CallbackData(
-                    CallbackType.Withdraw,
-                    abi.encode(WithdrawCallbackData(orderInfo.currency0, orderInfo.currency1, amount0, amount1, to))
+        poolManager()
+            .unlock(
+                abi.encode(
+                    CallbackData(
+                        CallbackType.Withdraw,
+                        abi.encode(WithdrawCallbackData(orderInfo.currency0, orderInfo.currency1, amount0, amount1, to))
+                    )
                 )
-            )
-        );
+            );
 
         // emit the withdraw event
         emit Withdraw(msg.sender, orderId, liquidity);
@@ -723,9 +729,7 @@ contract LimitOrderHook is BaseHook, IUnlockCallback {
      * @dev Internal helper that updates the order ID mapping. Takes a `PoolKey` `key`, target `tickLower`, direction
      * `zeroForOne`, and `orderId` to store. Associates the given order id with the pool position's hash.
      */
-    function _setOrderId(PoolKey memory key, int24 tickLower, bool zeroForOne, OrderIdLibrary.OrderId orderId)
-        private
-    {
+    function _setOrderId(PoolKey memory key, int24 tickLower, bool zeroForOne, OrderIdLibrary.OrderId orderId) private {
         _orderIds[keccak256(abi.encode(key, tickLower, zeroForOne))] = orderId;
     }
 

@@ -309,7 +309,7 @@ contract OracleLibTest is Test {
         assertEq(tickCumulative, 0);
         assertEq(secondsPerLiquidityCumulativeX128, 0);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 0);
 
         assertTrue(initialized);
@@ -326,7 +326,7 @@ contract OracleLibTest is Test {
         assertEq(tickCumulative, 0);
         assertEq(secondsPerLiquidityCumulativeX128, 0);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 0);
 
         assertTrue(initialized);
@@ -388,7 +388,7 @@ contract OracleLibTest is Test {
         assertEq(tickCumulative, 0);
         assertEq(secondsPerLiquidityCumulativeX128, 0);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 0);
 
         assertTrue(initialized);
@@ -406,7 +406,7 @@ contract OracleLibTest is Test {
         assertEq(tickCumulative, 0);
         assertEq(secondsPerLiquidityCumulativeX128, 0);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 0);
 
         assertTrue(initialized);
@@ -424,7 +424,7 @@ contract OracleLibTest is Test {
         assertEq(tickCumulative, 0);
         assertEq(secondsPerLiquidityCumulativeX128, 0);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 0);
 
         assertTrue(initialized);
@@ -442,7 +442,7 @@ contract OracleLibTest is Test {
         assertEq(tickCumulative, 0);
         assertEq(secondsPerLiquidityCumulativeX128, 0);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 0);
 
         assertTrue(initialized);
@@ -509,7 +509,7 @@ contract OracleLibTest is Test {
         assertEq(blockTimestamp, 1);
         assertEq(tickCumulative, 0);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 0);
 
         assertTrue(initialized);
@@ -523,7 +523,7 @@ contract OracleLibTest is Test {
         assertEq(blockTimestamp, 6);
         assertEq(tickCumulative, 10);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 0);
 
         assertTrue(initialized);
@@ -542,7 +542,7 @@ contract OracleLibTest is Test {
         assertEq(blockTimestamp, 1);
         assertEq(tickCumulative, 0);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 0);
 
         assertTrue(initialized);
@@ -556,7 +556,7 @@ contract OracleLibTest is Test {
         assertEq(blockTimestamp, 6);
         assertEq(tickCumulative, 10);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 0);
 
         assertTrue(initialized);
@@ -609,7 +609,7 @@ contract OracleLibTest is Test {
         assertEq(tickCumulative, 0);
         assertEq(secondsPerLiquidityCumulativeX128, 0);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 1);
 
         assertTrue(initialized);
@@ -636,7 +636,7 @@ contract OracleLibTest is Test {
         assertEq(tickCumulative, 0);
         assertEq(secondsPerLiquidityCumulativeX128, 0);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 1);
 
         assertTrue(initialized);
@@ -662,7 +662,7 @@ contract OracleLibTest is Test {
         assertEq(tickCumulative, 14);
         assertEq(secondsPerLiquidityCumulativeX128, 0);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 0);
 
         assertTrue(initialized);
@@ -688,7 +688,7 @@ contract OracleLibTest is Test {
         assertEq(tickCumulative, 14);
         assertEq(secondsPerLiquidityCumulativeX128, 0);
 
-        (blockTimestamp, /*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
+        (blockTimestamp,/*prevTruncatedTick*/ /*int56 tickCumulative(non-truncated)*/,, tickCumulative, initialized) =
             oracle.ORACLE_BASE().observationsById(oracle.poolId(), 0);
 
         assertTrue(initialized);
@@ -722,7 +722,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], 2);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], 2);
     }
@@ -747,7 +749,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], 0);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], 0);
     }
@@ -794,7 +798,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], 0);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], 0);
     }
@@ -824,7 +830,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], 4);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], 4);
     }
@@ -854,7 +862,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], 6);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], 6);
     }
@@ -917,7 +927,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives.length, 3);
         assertEq(secondsPerLiquidityCumulativeX128s.length, 3);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives.length, 3);
     }
@@ -941,7 +953,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives.length, 3);
         assertEq(secondsPerLiquidityCumulativeX128s.length, 3);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives.length, 3);
     }
@@ -1027,7 +1041,9 @@ contract OracleLibTest is Test {
         assertEq(secondsPerLiquidityCumulativeX128s[4], 0);
         assertEq(secondsPerLiquidityCumulativeX128s[5], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives.length, 6);
         assertEq(tickCumulatives[0], 56);
@@ -1071,7 +1087,9 @@ contract OracleLibTest is Test {
         assertEq(secondsPerLiquidityCumulativeX128s[4], 0);
         assertEq(secondsPerLiquidityCumulativeX128s[5], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives.length, 6);
         assertEq(tickCumulatives[0], 56);
@@ -1301,7 +1319,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], -5247463);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], -5247463);
     }
@@ -1333,7 +1353,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], -5242973);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], -5242973);
     }
@@ -1365,7 +1387,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], -6480513);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], -6480513);
     }
@@ -1398,7 +1422,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], -6480513);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], -6480513);
     }
@@ -1433,7 +1459,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], -6482511);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], -6482511);
     }
@@ -1468,7 +1496,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], -4144413);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], -4144413);
     }
@@ -1502,7 +1532,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], -4140423);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], -4140423);
     }
@@ -1536,7 +1568,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], 0);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], 0);
     }
@@ -1571,7 +1605,9 @@ contract OracleLibTest is Test {
         assertEq(tickCumulatives[0], 0);
         assertEq(secondsPerLiquidityCumulativeX128s[0], 0);
 
-        (tickCumulatives, /*tickCumulativesTruncated*/ ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
+        (
+            tickCumulatives, /*tickCumulativesTruncated*/
+        ) = oracle.ORACLE_BASE().observe(secondsAgos, oracle.poolId());
 
         assertEq(tickCumulatives[0], 0);
     }

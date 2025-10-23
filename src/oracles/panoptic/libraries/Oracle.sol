@@ -166,11 +166,13 @@ library Oracle {
     /// @param cardinality The number of populated elements in the oracle array
     /// @return beforeOrAt The observation recorded before, or at, the target
     /// @return atOrAfter The observation recorded at, or after, the target
-    function binarySearch(Observation[65535] storage self, uint32 time, uint32 target, uint16 index, uint16 cardinality)
-        internal
-        view
-        returns (Observation memory beforeOrAt, Observation memory atOrAfter)
-    {
+    function binarySearch(
+        Observation[65535] storage self,
+        uint32 time,
+        uint32 target,
+        uint16 index,
+        uint16 cardinality
+    ) internal view returns (Observation memory beforeOrAt, Observation memory atOrAfter) {
         unchecked {
             uint256 left = (index + 1) % cardinality; // oldest observation
             uint256 right = left + cardinality - 1; // newest observation
@@ -299,12 +301,10 @@ library Oracle {
                 return (
                     beforeOrAt.tickCumulative
                         + ((atOrAfter.tickCumulative - beforeOrAt.tickCumulative) / int56(uint56(observationTimeDelta)))
-                            * int56(uint56(targetDelta)),
+                        * int56(uint56(targetDelta)),
                     beforeOrAt.tickCumulativeTruncated
-                        + (
-                            (atOrAfter.tickCumulativeTruncated - beforeOrAt.tickCumulativeTruncated)
-                                / int56(uint56(observationTimeDelta))
-                        ) * int56(uint56(targetDelta))
+                        + ((atOrAfter.tickCumulativeTruncated - beforeOrAt.tickCumulativeTruncated)
+                            / int56(uint56(observationTimeDelta))) * int56(uint56(targetDelta))
                 );
             }
         }

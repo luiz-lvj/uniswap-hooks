@@ -25,7 +25,7 @@ contract BaseDynamicFeeMock is BaseDynamicFee, AccessControl {
         _fee = fee_;
     }
 
-    /* 
+    /*
     * @dev Public wrapper that allows an authorized party to update the dynamic LP fee for the given pool
     * using the internal `_poke` function.
     * @param key The pool key to update the dynamic LP fee for.

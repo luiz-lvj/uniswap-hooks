@@ -400,9 +400,12 @@ abstract contract BaseCustomAccounting is BaseHook, IHookEvents, IUnlockCallback
      * @param feesAccrued The balance delta of the fees generated in the liquidity range.
      * @param shares The liquidity shares to mint.
      */
-    function _mint(AddLiquidityParams memory params, BalanceDelta callerDelta, BalanceDelta feesAccrued, uint256 shares)
-        internal
-        virtual;
+    function _mint(
+        AddLiquidityParams memory params,
+        BalanceDelta callerDelta,
+        BalanceDelta feesAccrued,
+        uint256 shares
+    ) internal virtual;
 
     /**
      * @dev Burn liquidity shares from the sender.

@@ -109,8 +109,9 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         assertApproxEqAbs(hookFeeDeltaAfterRemoval, feeDelta, 1, "Hooked: Attacker received donation");
 
         // in the unhooked pool, the attacker should have collected the fees during liquidity removal
-        BalanceDelta noHookFeeDeltaAfterRemoval =
-            calculateFeeDelta(manager, noHookKey.toId(), address(modifyLiquidityRouter), TICK_LOWER, TICK_UPPER, bytes32(0));
+        BalanceDelta noHookFeeDeltaAfterRemoval = calculateFeeDelta(
+            manager, noHookKey.toId(), address(modifyLiquidityRouter), TICK_LOWER, TICK_UPPER, bytes32(0)
+        );
         assertEq(noHookFeeDeltaAfterRemoval, toBalanceDelta(0, 0), "Unhooked: Attacker collected fees");
     }
 
@@ -134,7 +135,8 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         uint128 liquidityNoHookKey = StateLibrary.getLiquidity(manager, noHookKey.toId());
 
         // remove entire liquidity
-        BalanceDelta noHookDelta = modifyPoolLiquidity(noHookKey, TICK_LOWER, TICK_UPPER, -int128(liquidityNoHookKey), 0);
+        BalanceDelta noHookDelta =
+            modifyPoolLiquidity(noHookKey, TICK_LOWER, TICK_UPPER, -int128(liquidityNoHookKey), 0);
 
         // Can't withdraw all liquidity in the hooked since the attacker is the sole lp in range, and there
         // is no other active liquidity positions in range to receive the donation. Offset must be awaited.
@@ -153,7 +155,8 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         vm.roll(block.number + 1);
 
         // now the attacker can remove without penalty
-        BalanceDelta hookDeltaAfterOffset = modifyPoolLiquidity(key, TICK_LOWER, TICK_UPPER, -int128(liquidityHookKey), 0);
+        BalanceDelta hookDeltaAfterOffset =
+            modifyPoolLiquidity(key, TICK_LOWER, TICK_UPPER, -int128(liquidityHookKey), 0);
 
         assertEq(hookDeltaAfterOffset, noHookDelta, "Hooked: penalty not applied after offset.");
     }
@@ -186,13 +189,15 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         BalanceDelta deltaHook = modifyPoolLiquidity(key, TICK_LOWER, TICK_UPPER, -LIQUIDITY_AMOUNT_1E18, attackerSalt);
 
         // attacker removes liquidity in the unhooked pool without penalty
-        BalanceDelta deltaNoHook = modifyPoolLiquidity(noHookKey, TICK_LOWER, TICK_UPPER, -LIQUIDITY_AMOUNT_1E18, attackerSalt);
+        BalanceDelta deltaNoHook =
+            modifyPoolLiquidity(noHookKey, TICK_LOWER, TICK_UPPER, -LIQUIDITY_AMOUNT_1E18, attackerSalt);
 
         assertEq(deltaHook, deltaNoHook - feeDelta, "Hooked: JIT penalty applied");
 
         // attacker's fees should be zero after removing liquidity
-        BalanceDelta hookAttackerFeesAfterRemoval =
-            calculateFeeDelta(manager, key.toId(), address(modifyLiquidityRouter), TICK_LOWER, TICK_UPPER, attackerSalt);
+        BalanceDelta hookAttackerFeesAfterRemoval = calculateFeeDelta(
+            manager, key.toId(), address(modifyLiquidityRouter), TICK_LOWER, TICK_UPPER, attackerSalt
+        );
         assertEq(hookAttackerFeesAfterRemoval, toBalanceDelta(0, 0), "Hooked: Attacker's feeDelta zero");
 
         // user should have received the attacker's fees donation in the hooked pool
@@ -204,8 +209,10 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         vm.roll(block.number + 1);
 
         // now user can remove without penalty in the hooked pool
-        BalanceDelta hookDeltaBobAfterRemoval = modifyPoolLiquidity(key, TICK_LOWER, TICK_UPPER, -LIQUIDITY_AMOUNT_1E18, bobSalt);
-        BalanceDelta noHookDeltaBobAfterRemoval = modifyPoolLiquidity(noHookKey, TICK_LOWER, TICK_UPPER, -LIQUIDITY_AMOUNT_1E18, bobSalt);
+        BalanceDelta hookDeltaBobAfterRemoval =
+            modifyPoolLiquidity(key, TICK_LOWER, TICK_UPPER, -LIQUIDITY_AMOUNT_1E18, bobSalt);
+        BalanceDelta noHookDeltaBobAfterRemoval =
+            modifyPoolLiquidity(noHookKey, TICK_LOWER, TICK_UPPER, -LIQUIDITY_AMOUNT_1E18, bobSalt);
 
         assertEq(
             hookDeltaBobAfterRemoval,
@@ -241,7 +248,8 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         BalanceDelta hookDeltaAttackerAddition = modifyPoolLiquidity(key, TICK_LOWER, TICK_UPPER, 1e14, attackerSalt);
 
         BalanceDelta noHookDeltaBobAddition = modifyPoolLiquidity(noHookKey, TICK_LOWER, TICK_UPPER, 1e14, bobSalt);
-        BalanceDelta noHookDeltaAttackerAddition = modifyPoolLiquidity(noHookKey, TICK_LOWER, TICK_UPPER, 1e14, attackerSalt);
+        BalanceDelta noHookDeltaAttackerAddition =
+            modifyPoolLiquidity(noHookKey, TICK_LOWER, TICK_UPPER, 1e14, attackerSalt);
 
         // user and attacker collected fees on unhooked, but withheld in hook
         assertEq(hookDeltaBobAddition, noHookDeltaBobAddition - feeDelta, "unhooked collected, hooked withheld");
@@ -311,8 +319,9 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         modifyPoolLiquidity(key, TICK_LOWER, TICK_UPPER, -LIQUIDITY_AMOUNT_1E18, attackerSalt);
         modifyPoolLiquidity(noHookKey, TICK_LOWER, TICK_UPPER, -LIQUIDITY_AMOUNT_1E18, attackerSalt);
 
-        BalanceDelta hookFeesAttackerAfterRemoval =
-            calculateFeeDelta(manager, key.toId(), address(modifyLiquidityRouter), TICK_LOWER, TICK_UPPER, attackerSalt);
+        BalanceDelta hookFeesAttackerAfterRemoval = calculateFeeDelta(
+            manager, key.toId(), address(modifyLiquidityRouter), TICK_LOWER, TICK_UPPER, attackerSalt
+        );
         assertEq(hookFeesAttackerAfterRemoval, toBalanceDelta(0, 0), "Attacker's fees got penalized");
 
         BalanceDelta hookFeesBobAfterRemoval =
@@ -323,8 +332,10 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         vm.roll(block.number + 1);
 
         // now user can remove without penalty in the hooked pool
-        BalanceDelta hookDeltaBobAfterRemoval = modifyPoolLiquidity(key, TICK_LOWER, TICK_UPPER, -LIQUIDITY_AMOUNT_1E18, bobSalt);
-        BalanceDelta noHookDeltaBobAfterRemoval = modifyPoolLiquidity(noHookKey, TICK_LOWER, TICK_UPPER, -LIQUIDITY_AMOUNT_1E18, bobSalt);
+        BalanceDelta hookDeltaBobAfterRemoval =
+            modifyPoolLiquidity(key, TICK_LOWER, TICK_UPPER, -LIQUIDITY_AMOUNT_1E18, bobSalt);
+        BalanceDelta noHookDeltaBobAfterRemoval =
+            modifyPoolLiquidity(noHookKey, TICK_LOWER, TICK_UPPER, -LIQUIDITY_AMOUNT_1E18, bobSalt);
 
         assertEq(
             hookDeltaBobAfterRemoval,

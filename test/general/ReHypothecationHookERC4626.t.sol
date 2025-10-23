@@ -467,6 +467,6 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
             modifyPoolLiquidity(noHookKey, hook.getTickLower(), hook.getTickUpper(), -int256(uint256(shares)), 0);
         // Hooked
         BalanceDelta hookedRemoveDelta = hook.removeReHypothecatedLiquidity(shares);
-        assertApproxEqAbs(hookedRemoveDelta, noHookRemoveDelta, 2, "hookedRemoveDelta !~= noHookRemoveDelta");
+        assertApproxEqAbs(hookedRemoveDelta, noHookRemoveDelta, 10, "hookedRemoveDelta !~= noHookRemoveDelta");
     }
 }

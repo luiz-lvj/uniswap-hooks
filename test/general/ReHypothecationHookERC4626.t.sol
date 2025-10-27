@@ -52,7 +52,7 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
             payable(address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG)))
         );
         deployCodeTo(
-            "src/mocks/ReHypothecationERC4626Mock.sol:ReHypothecationERC4626Mock",
+            "src/mocks/general/ReHypothecationERC4626Mock.sol:ReHypothecationERC4626Mock",
             abi.encode(address(manager), address(yieldSource0), address(yieldSource1)),
             address(hook)
         );
@@ -132,7 +132,7 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
             payable(address(hookFlags + 0x10000000000000000000000000000000)) // generate a different address
         );
         deployCodeTo(
-            "src/mocks/ReHypothecationERC4626Mock.sol:ReHypothecationERC4626Mock",
+            "src/mocks/general/ReHypothecationERC4626Mock.sol:ReHypothecationERC4626Mock",
             abi.encode(address(manager), address(yieldSource0), address(yieldSource1)),
             address(newHook)
         );
@@ -264,7 +264,7 @@ contract ReHypothecationHookERC4626Test is HookTest, BalanceDeltaAssertions {
             payable(address(hookFlags + 0x10000000000000000000000000000000)) // generate a different address
         );
         deployCodeTo(
-            "src/mocks/ReHypothecationERC4626Mock.sol:ReHypothecationERC4626Mock",
+            "src/mocks/general/ReHypothecationERC4626Mock.sol:ReHypothecationERC4626Mock",
             abi.encode(address(manager), address(yieldSource0), address(yieldSource1)),
             address(newHook)
         );

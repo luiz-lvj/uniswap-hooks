@@ -47,7 +47,7 @@ contract ReHypothecationHookNativeTest is HookTest, BalanceDeltaAssertions {
             payable(address(uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG)))
         );
         deployCodeTo(
-            "src/mocks/ReHypothecationNativeMock.sol:ReHypothecationNativeMock",
+            "src/mocks/general/ReHypothecationNativeMock.sol:ReHypothecationNativeMock",
             abi.encode(address(manager), address(yieldSource0), address(yieldSource1)),
             address(hook)
         );
@@ -106,7 +106,7 @@ contract ReHypothecationHookNativeTest is HookTest, BalanceDeltaAssertions {
             payable(address(hookFlags + 0x10000000000000000000000000000000)) // generate a different address
         );
         deployCodeTo(
-            "src/mocks/ReHypothecationNativeMock.sol:ReHypothecationNativeMock",
+            "src/mocks/general/ReHypothecationNativeMock.sol:ReHypothecationNativeMock",
             abi.encode(address(manager), address(yieldSource0), address(yieldSource1)),
             address(newHook)
         );

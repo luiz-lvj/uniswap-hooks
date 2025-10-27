@@ -47,7 +47,7 @@ contract BaseCustomCurveTest is HookTest {
                 ))
         );
         deployCodeTo(
-            "src/mocks/BaseCustomCurveMock.sol:BaseCustomCurveMock", abi.encode(address(manager)), address(hook)
+            "src/mocks/base/BaseCustomCurveMock.sol:BaseCustomCurveMock", abi.encode(address(manager)), address(hook)
         );
 
         deployMintAndApprove2Currencies();
@@ -96,7 +96,9 @@ contract BaseCustomCurveTest is HookTest {
     function test_addLiquidity_native_succeeds() public {
         BaseCustomCurveMock nativeHook = BaseCustomCurveMock(payable(0x1000000000000000000000000000000000002A88));
         deployCodeTo(
-            "src/mocks/BaseCustomCurveMock.sol:BaseCustomCurveMock", abi.encode(address(manager)), address(nativeHook)
+            "src/mocks/base/BaseCustomCurveMock.sol:BaseCustomCurveMock",
+            abi.encode(address(manager)),
+            address(nativeHook)
         );
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -365,7 +367,9 @@ contract BaseCustomCurveTest is HookTest {
     function test_removeLiquidity_native_succeeds() public {
         BaseCustomCurveMock nativeHook = BaseCustomCurveMock(payable(0x1000000000000000000000000000000000002A88));
         deployCodeTo(
-            "src/mocks/BaseCustomCurveMock.sol:BaseCustomCurveMock", abi.encode(address(manager)), address(nativeHook)
+            "src/mocks/base/BaseCustomCurveMock.sol:BaseCustomCurveMock",
+            abi.encode(address(manager)),
+            address(nativeHook)
         );
         (key, id) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,
@@ -488,7 +492,7 @@ contract BaseCustomCurveTest is HookTest {
     function test_removeLiquidity_notInitialized_reverts() public {
         BaseCustomCurveMock uninitializedHook = BaseCustomCurveMock(payable(0x1000000000000000000000000000000000002A88));
         deployCodeTo(
-            "src/mocks/BaseCustomCurveMock.sol:BaseCustomCurveMock",
+            "src/mocks/base/BaseCustomCurveMock.sol:BaseCustomCurveMock",
             abi.encode(address(manager)),
             address(uninitializedHook)
         );
@@ -502,7 +506,7 @@ contract BaseCustomCurveTest is HookTest {
     function test_addLiquidity_notInitialized_reverts() public {
         BaseCustomCurveMock uninitializedHook = BaseCustomCurveMock(payable(0x1000000000000000000000000000000000002A88));
         deployCodeTo(
-            "src/mocks/BaseCustomCurveMock.sol:BaseCustomCurveMock",
+            "src/mocks/base/BaseCustomCurveMock.sol:BaseCustomCurveMock",
             abi.encode(address(manager)),
             address(uninitializedHook)
         );

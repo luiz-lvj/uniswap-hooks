@@ -30,11 +30,11 @@ contract BaseHookTest is HookTest {
                 )
             )
         );
-        deployCodeTo("src/mocks/BaseHookMock.sol:BaseHookMock", abi.encode(address(manager)), address(hook));
+        deployCodeTo("src/mocks/base/BaseHookMock.sol:BaseHookMock", abi.encode(address(manager)), address(hook));
 
         hookReverts = BaseHookMockReverts(address(0x1000000000000000000000000000000000003FF0));
         deployCodeTo(
-            "src/mocks/BaseHookMock.sol:BaseHookMockReverts", abi.encode(address(manager)), address(hookReverts)
+            "src/mocks/base/BaseHookMock.sol:BaseHookMockReverts", abi.encode(address(manager)), address(hookReverts)
         );
 
         deployMintAndApprove2Currencies();

@@ -32,7 +32,7 @@ contract BaseDynamicFeeTest is HookTest {
 
         dynamicFeesHooks = BaseDynamicFeeMock(address(uint160(Hooks.AFTER_INITIALIZE_FLAG)));
         deployCodeTo(
-            "src/mocks/BaseDynamicFeeMock.sol:BaseDynamicFeeMock",
+            "src/mocks/fee/BaseDynamicFeeMock.sol:BaseDynamicFeeMock",
             abi.encode(address(manager), address(this), address(this)),
             address(dynamicFeesHooks)
         );

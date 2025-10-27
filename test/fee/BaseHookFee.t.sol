@@ -38,7 +38,7 @@ contract BaseHookFeeTest is HookTest {
 
         hook = BaseHookFeeMock(address(uint160(Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG)));
         deployCodeTo(
-            "src/mocks/BaseHookFeeMock.sol:BaseHookFeeMock",
+            "src/mocks/fee/BaseHookFeeMock.sol:BaseHookFeeMock",
             abi.encode(address(manager), hookFee, withdrawer),
             address(hook)
         );

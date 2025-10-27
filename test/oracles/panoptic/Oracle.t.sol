@@ -256,7 +256,7 @@ contract OracleLibTest is Test {
         oracle = new OracleTestV4();
         manager = oracle.getManager();
 
-        deployCodeTo("OracleHookWithV3Adapters.sol", abi.encode(int24(9116)), address(ORACLE_BASE));
+        deployCodeTo("OracleHookWithV3Adapters.sol", abi.encode(address(manager), int24(9116)), address(ORACLE_BASE));
     }
 
     function test_fail_increaseObservationCardinalityNext_notInitialized() public {

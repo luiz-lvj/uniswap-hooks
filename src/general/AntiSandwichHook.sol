@@ -81,7 +81,7 @@ abstract contract AntiSandwichHook is BaseDynamicAfterFee {
         returns (bytes4, BeforeSwapDelta, uint24)
     {
         PoolId poolId = key.toId();
-        IPoolManager manager = poolManager();
+        IPoolManager manager = poolManager;
         Checkpoint storage _lastCheckpoint = _lastCheckpoints[poolId];
 
         uint48 currentBlock = _getBlockNumber();

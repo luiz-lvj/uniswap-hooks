@@ -17,10 +17,9 @@ import {Pool} from "@uniswap/v4-core/src/libraries/Pool.sol";
 import {BaseOverrideFee} from "src/fee/BaseOverrideFee.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {CustomRevert} from "@uniswap/v4-core/src/libraries/CustomRevert.sol";
-
 // Internal imports
-import {HookTest} from "test/utils/HookTest.sol";
-import {BaseOverrideFeeMock} from "src/mocks/BaseOverrideFeeMock.sol";
+import {HookTest} from "../utils/HookTest.sol";
+import {BaseOverrideFeeMock} from "../../src/mocks/fee/BaseOverrideFeeMock.sol";
 
 contract BaseOverrideFeeTest is HookTest {
     using StateLibrary for IPoolManager;
@@ -32,7 +31,11 @@ contract BaseOverrideFeeTest is HookTest {
         deployFreshManagerAndRouters();
 
         dynamicFeesHooks = BaseOverrideFeeMock(address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_INITIALIZE_FLAG)));
-        deployCodeTo("src/mocks/BaseOverrideFeeMock.sol:BaseOverrideFeeMock", address(dynamicFeesHooks));
+        deployCodeTo(
+            "src/mocks/BaseOverrideFeeMock.sol:BaseOverrideFeeMock",
+            abi.encode(address(manager)),
+            address(dynamicFeesHooks)
+        );
 
         deployMintAndApprove2Currencies();
         (key,) = initPoolAndAddLiquidity(

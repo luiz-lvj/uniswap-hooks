@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+// External
 import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+// Internal
 import {V3OracleAdapter} from "./adapters/V3OracleAdapter.sol";
 import {BaseOracleHook} from "./BaseOracleHook.sol";
 import {V3TruncatedOracleAdapter} from "./adapters/V3TruncatedOracleAdapter.sol";
 
 /// @dev A hook that enables a Uniswap V4 pool to record price observations and expose an oracle interface with Uniswap V3-compatible adapters
-contract OracleHookWithV3Adapters is BaseOracleHook {
+abstract contract OracleHookWithV3Adapters is BaseOracleHook {
     /// @dev Emitted when adapter contracts are deployed for a pool.
     ///
     /// @param poolId The ID of the pool
@@ -33,11 +34,10 @@ contract OracleHookWithV3Adapters is BaseOracleHook {
     /// @inheritdoc BaseOracleHook
     function _afterInitialize(address, PoolKey calldata key, uint160, int24 tick) internal override returns (bytes4) {
         PoolId poolId = key.toId();
-        IPoolManager manager = poolManager();
 
         // Deploy adapter contracts
-        V3OracleAdapter _standardAdapter = new V3OracleAdapter(manager, this, poolId);
-        V3TruncatedOracleAdapter _truncatedAdapter = new V3TruncatedOracleAdapter(manager, this, poolId);
+        V3OracleAdapter _standardAdapter = new V3OracleAdapter(poolManager, this, poolId);
+        V3TruncatedOracleAdapter _truncatedAdapter = new V3TruncatedOracleAdapter(poolManager, this, poolId);
 
         // Store adapter addresses
         standardAdapter[poolId] = address(_standardAdapter);

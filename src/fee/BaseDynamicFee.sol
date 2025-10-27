@@ -42,7 +42,7 @@ abstract contract BaseDynamicFee is BaseHook {
         returns (bytes4)
     {
         if (!key.fee.isDynamicFee()) revert NotDynamicFee();
-        poolManager().updateDynamicLPFee(key, _getFee(key));
+        poolManager.updateDynamicLPFee(key, _getFee(key));
         return this.afterInitialize.selector;
     }
 
@@ -57,7 +57,7 @@ abstract contract BaseDynamicFee is BaseHook {
      * @param key The pool key to update the dynamic LP fee for.
      */
     function _poke(PoolKey calldata key) internal virtual {
-        poolManager().updateDynamicLPFee(key, _getFee(key));
+        poolManager.updateDynamicLPFee(key, _getFee(key));
     }
 
     /**

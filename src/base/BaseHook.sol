@@ -31,6 +31,7 @@ abstract contract BaseHook is IHooks {
     /*
      * @dev The pool manager singleton contract.
      */
+    IPoolManager public immutable poolManager;
 
     /**
      * @dev The hook function is not implemented.
@@ -45,7 +46,8 @@ abstract contract BaseHook is IHooks {
     /**
      * @dev Check that the hook address matches the expected permissions and flags.
      */
-    constructor() {
+    constructor(IPoolManager _poolManager) {
+        poolManager = _poolManager;
         _validateHookAddress(this);
     }
 
@@ -53,15 +55,8 @@ abstract contract BaseHook is IHooks {
      * @notice Only allow calls from the `PoolManager` contract
      */
     modifier onlyPoolManager() {
-        if (msg.sender != address(poolManager())) revert NotPoolManager();
+        if (msg.sender != address(poolManager)) revert NotPoolManager();
         _;
-    }
-
-    /**
-     * @dev The pool manager singleton contract.
-     */
-    function poolManager() public view virtual returns (IPoolManager) {
-        return IPoolManager(0x000000000004444c5dc75cB358380D2e3dE08A90);
     }
 
     /**

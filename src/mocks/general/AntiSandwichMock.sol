@@ -8,11 +8,14 @@ import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 // Internal imports
-import {AntiSandwichHook} from "../general/AntiSandwichHook.sol";
-import {CurrencySettler} from "../utils/CurrencySettler.sol";
+import {AntiSandwichHook} from "../../general/AntiSandwichHook.sol";
+import {CurrencySettler} from "../../utils/CurrencySettler.sol";
+import {BaseHook} from "../../base/BaseHook.sol";
 
 contract AntiSandwichMock is AntiSandwichHook {
     using CurrencySettler for Currency;
+
+    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     /**
      * @dev Handles the excess tokens collected during the swap due to the anti-sandwich mechanism.
@@ -32,15 +35,14 @@ contract AntiSandwichMock is AntiSandwichHook {
         uint256,
         uint256 feeAmount
     ) internal override {
-        IPoolManager manager = poolManager();
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
         (uint256 amount0, uint256 amount1) = unspecified == key.currency0
             ? (uint256(uint128(feeAmount)), uint256(0))
             : (uint256(0), uint256(uint128(feeAmount)));
 
         // settle and donate execess tokens to the pool
-        manager.donate(key, amount0, amount1, "");
-        unspecified.settle(manager, address(this), feeAmount, true);
+        poolManager.donate(key, amount0, amount1, "");
+        unspecified.settle(poolManager, address(this), feeAmount, true);
     }
 
     // Exclude from coverage report

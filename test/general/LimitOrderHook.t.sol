@@ -12,18 +12,20 @@ import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {IERC20Minimal} from "@uniswap/v4-core/src/interfaces/external/IERC20Minimal.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 import {Position} from "@uniswap/v4-core/src/libraries/Position.sol";
-import {LimitOrderHook, OrderIdLibrary} from "src/general/LimitOrderHook.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {FullMath} from "@uniswap/v4-core/src/libraries/FullMath.sol";
 import {FixedPoint128} from "@uniswap/v4-core/src/libraries/FixedPoint128.sol";
 import {ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
-import {HookTest} from "test/utils/HookTest.sol";
+// Internal imports
+import {LimitOrderHook, OrderIdLibrary} from "src/general/LimitOrderHook.sol";
+import {LimitOrderHookMock} from "../../src/mocks/general/LimitOrderHookMock.sol";
+import {HookTest} from "../utils/HookTest.sol";
 
 contract LimitOrderHookTest is HookTest {
     using StateLibrary for IPoolManager;
 
-    LimitOrderHook hook;
+    LimitOrderHookMock hook;
 
     PoolKey noHookKey;
 
@@ -41,9 +43,11 @@ contract LimitOrderHookTest is HookTest {
         deployFreshManagerAndRouters();
         deployMintAndApprove2Currencies();
 
-        hook = LimitOrderHook(address(uint160(Hooks.AFTER_INITIALIZE_FLAG | Hooks.AFTER_SWAP_FLAG)));
+        hook = LimitOrderHookMock(address(uint160(Hooks.AFTER_INITIALIZE_FLAG | Hooks.AFTER_SWAP_FLAG)));
 
-        deployCodeTo("src/general/LimitOrderHook.sol:LimitOrderHook", address(hook));
+        deployCodeTo(
+            "src/mocks/general/LimitOrderHookMock.sol:LimitOrderHookMock", abi.encode(address(manager)), address(hook)
+        );
 
         (key,) = initPool(currency0, currency1, IHooks(address(hook)), 3000, SQRT_PRICE_1_1);
         (noHookKey,) = initPool(currency0, currency1, IHooks(address(0)), 3000, SQRT_PRICE_1_1);

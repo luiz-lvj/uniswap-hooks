@@ -14,10 +14,10 @@ import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 // Internal imports
-import {ReHypothecationNativeMock, NativeYieldSourceMock} from "../../src/mocks/ReHypothecationNativeMock.sol";
-import {ERC4626YieldSourceMock} from "../../src/mocks/ReHypothecationERC4626Mock.sol";
-import {HookTest} from "../../test/utils/HookTest.sol";
-import {BalanceDeltaAssertions} from "../../test/utils/BalanceDeltaAssertions.sol";
+import {ReHypothecationNativeMock, NativeYieldSourceMock} from "../../src/mocks/general/ReHypothecationNativeMock.sol";
+import {ERC4626YieldSourceMock} from "../../src/mocks/general/ReHypothecationERC4626Mock.sol";
+import {HookTest} from "../utils/HookTest.sol";
+import {BalanceDeltaAssertions} from "../utils/BalanceDeltaAssertions.sol";
 
 contract ReHypothecationHookNativeTest is HookTest, BalanceDeltaAssertions {
     using StateLibrary for IPoolManager;
@@ -48,7 +48,7 @@ contract ReHypothecationHookNativeTest is HookTest, BalanceDeltaAssertions {
         );
         deployCodeTo(
             "src/mocks/ReHypothecationNativeMock.sol:ReHypothecationNativeMock",
-            abi.encode(address(yieldSource0), address(yieldSource1)),
+            abi.encode(address(manager), address(yieldSource0), address(yieldSource1)),
             address(hook)
         );
 
@@ -107,7 +107,7 @@ contract ReHypothecationHookNativeTest is HookTest, BalanceDeltaAssertions {
         );
         deployCodeTo(
             "src/mocks/ReHypothecationNativeMock.sol:ReHypothecationNativeMock",
-            abi.encode(address(yieldSource0), address(yieldSource1)),
+            abi.encode(address(manager), address(yieldSource0), address(yieldSource1)),
             address(newHook)
         );
         (PoolKey memory nativeKey,) =

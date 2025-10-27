@@ -7,11 +7,13 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 // Internal imports
-import {BaseCustomCurve} from "../base/BaseCustomCurve.sol";
+import {BaseCustomCurve} from "../../base/BaseCustomCurve.sol";
+import {BaseHook} from "../../base/BaseHook.sol";
 
 contract BaseCustomCurveMock is BaseCustomCurve, ERC20 {
-    constructor() ERC20("Mock", "MOCK") {}
+    constructor(IPoolManager _poolManager) BaseHook(_poolManager) ERC20("Mock", "MOCK") {}
 
     function _getUnspecifiedAmount(SwapParams calldata params)
         internal

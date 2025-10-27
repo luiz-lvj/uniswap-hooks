@@ -7,14 +7,16 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 // Internal imports
-import {CurrencySettler} from "../utils/CurrencySettler.sol";
-import {BaseCustomAccountingMock} from "../mocks/BaseCustomAccountingMock.sol";
+import {CurrencySettler} from "../../utils/CurrencySettler.sol";
+import {BaseCustomAccountingMock} from "./BaseCustomAccountingMock.sol";
 
 contract BaseCustomAccountingFeeMock is BaseCustomAccountingMock {
     using CurrencySettler for Currency;
 
     /// @notice The fee to keep from accrued fees, defined in basis points (up to 10_000)
     uint256 private _feesAccruedFeeBps;
+
+    constructor(IPoolManager _poolManager) BaseCustomAccountingMock(_poolManager) {}
 
     function setFee(uint256 feeBps) external {
         _feesAccruedFeeBps = feeBps;
@@ -25,13 +27,12 @@ contract BaseCustomAccountingFeeMock is BaseCustomAccountingMock {
         override
     {
         PoolKey memory key = poolKey();
-        IPoolManager manager = poolManager();
 
         uint256 feesAccruedFeeBps = _feesAccruedFeeBps;
 
         // Fetch fees from the pool
-        key.currency0.take(manager, address(this), uint256(int256(feesAccrued.amount0())), false);
-        key.currency1.take(manager, address(this), uint256(int256(feesAccrued.amount1())), false);
+        key.currency0.take(poolManager, address(this), uint256(int256(feesAccrued.amount0())), false);
+        key.currency1.take(poolManager, address(this), uint256(int256(feesAccrued.amount1())), false);
 
         uint256 fee0 = uint256(int256(feesAccrued.amount0())) * feesAccruedFeeBps / 10_000;
         uint256 fee1 = uint256(int256(feesAccrued.amount1())) * feesAccruedFeeBps / 10_000;

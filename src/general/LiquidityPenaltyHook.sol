@@ -47,7 +47,7 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
  *
  * _Available since v0.1.1_
  */
-contract LiquidityPenaltyHook is BaseHook {
+abstract contract LiquidityPenaltyHook is BaseHook {
     using CurrencySettler for Currency;
     using StateLibrary for IPoolManager;
     using SafeCast for uint256;
@@ -85,7 +85,7 @@ contract LiquidityPenaltyHook is BaseHook {
     mapping(PoolId poolId => mapping(bytes32 positionKey => BalanceDelta delta)) private _withheldFees;
 
     /**
-     * @dev Sets the {getBlockNumberOffset}.
+     * @dev Sets the {getBlockNumberOffset} and the {poolManager} address.
      */
     constructor(uint48 _blockNumberOffset) {
         if (_blockNumberOffset < MIN_BLOCK_NUMBER_OFFSET) revert BlockNumberOffsetTooLow();
@@ -162,12 +162,11 @@ contract LiquidityPenaltyHook is BaseHook {
 
             // If there is a penalty to be applied but there are no active liquidity positions in range to
             // receive the donation, then the liquidity removal is not possible and the offset must be awaited.
-            if (poolManager().getLiquidity(poolId) == 0) revert NoLiquidityToReceiveDonation();
+            if (poolManager.getLiquidity(poolId) == 0) revert NoLiquidityToReceiveDonation();
 
-            poolManager()
-                .donate(
-                    key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
-                );
+            poolManager.donate(
+                key, uint256(int256(liquidityPenalty.amount0())), uint256(int256(liquidityPenalty.amount1())), ""
+            );
 
             return (this.afterRemoveLiquidity.selector, liquidityPenalty - withheldFees);
         }
@@ -200,12 +199,11 @@ contract LiquidityPenaltyHook is BaseHook {
      */
     function _takeFeesToHook(PoolKey calldata key, bytes32 positionKey, BalanceDelta feeDelta) internal virtual {
         PoolId poolId = key.toId();
-        IPoolManager manager = poolManager();
 
         _withheldFees[poolId][positionKey] = _withheldFees[poolId][positionKey] + feeDelta;
 
-        key.currency0.take(manager, address(this), uint256(uint128(feeDelta.amount0())), true);
-        key.currency1.take(manager, address(this), uint256(uint128(feeDelta.amount1())), true);
+        key.currency0.take(poolManager, address(this), uint256(uint128(feeDelta.amount0())), true);
+        key.currency1.take(poolManager, address(this), uint256(uint128(feeDelta.amount1())), true);
     }
 
     /**
@@ -217,7 +215,6 @@ contract LiquidityPenaltyHook is BaseHook {
         returns (BalanceDelta withheldFees)
     {
         PoolId poolId = key.toId();
-        IPoolManager manager = poolManager();
 
         withheldFees = getWithheldFees(poolId, positionKey);
 
@@ -226,10 +223,10 @@ contract LiquidityPenaltyHook is BaseHook {
 
         // Settle the `withheldFees` for the liquidity position.
         if (withheldFees.amount0() > 0) {
-            key.currency0.settle(manager, address(this), uint256(uint128(withheldFees.amount0())), true);
+            key.currency0.settle(poolManager, address(this), uint256(uint128(withheldFees.amount0())), true);
         }
         if (withheldFees.amount1() > 0) {
-            key.currency1.settle(manager, address(this), uint256(uint128(withheldFees.amount1())), true);
+            key.currency1.settle(poolManager, address(this), uint256(uint128(withheldFees.amount1())), true);
         }
     }
 

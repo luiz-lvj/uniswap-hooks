@@ -8,9 +8,9 @@ import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {toBalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 // Internal imports
-import {HookTest} from "test/utils/HookTest.sol";
+import {HookTest} from "../utils/HookTest.sol";
 import {BalanceDeltaAssertions} from "../utils/BalanceDeltaAssertions.sol";
-import {AntiSandwichMock} from "src/mocks/AntiSandwichMock.sol";
+import {AntiSandwichMock} from "../../src/mocks/general/AntiSandwichMock.sol";
 
 contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
     AntiSandwichMock hook;
@@ -27,7 +27,9 @@ contract AntiSandwichHookTest is HookTest, BalanceDeltaAssertions {
         hook = AntiSandwichMock(
             address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG))
         );
-        deployCodeTo("src/mocks/AntiSandwichMock.sol:AntiSandwichMock", address(hook));
+        deployCodeTo(
+            "src/mocks/general/AntiSandwichMock.sol:AntiSandwichMock", abi.encode(address(manager)), address(hook)
+        );
 
         (key,) = initPoolAndAddLiquidity(currency0, currency1, IHooks(address(hook)), 0, 60, SQRT_PRICE_1_1);
         (noHookKey,) = initPoolAndAddLiquidity(currency0, currency1, IHooks(address(0)), 0, 60, SQRT_PRICE_1_1);

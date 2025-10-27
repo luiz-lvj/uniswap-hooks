@@ -12,7 +12,8 @@ import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 import {ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 // Internal imports
-import {BaseCustomAccounting} from "../base/BaseCustomAccounting.sol";
+import {BaseCustomAccounting} from "../../base/BaseCustomAccounting.sol";
+import {BaseHook} from "../../base/BaseHook.sol";
 
 contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
     using SafeCast for uint256;
@@ -20,7 +21,7 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
 
     uint256 private _nativeRefund;
 
-    constructor() ERC20("Mock", "MOCK") {}
+    constructor(IPoolManager _poolManager) BaseHook(_poolManager) ERC20("Mock", "MOCK") {}
 
     function setNativeRefund(uint256 nativeRefundFee) external {
         _nativeRefund = nativeRefundFee;
@@ -61,8 +62,7 @@ contract BaseCustomAccountingMock is BaseCustomAccounting, ERC20 {
         override
         returns (bytes memory, uint256 liquidity)
     {
-        IPoolManager manager = poolManager();
-        liquidity = FullMath.mulDiv(params.liquidity, manager.getLiquidity(poolKey().toId()), totalSupply());
+        liquidity = FullMath.mulDiv(params.liquidity, poolManager.getLiquidity(poolKey().toId()), totalSupply());
 
         return (
             abi.encode(

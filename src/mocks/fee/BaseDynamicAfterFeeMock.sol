@@ -8,14 +8,17 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 // Internal imports
-import {BaseDynamicAfterFee} from "../fee/BaseDynamicAfterFee.sol";
-import {CurrencySettler} from "../utils/CurrencySettler.sol";
+import {BaseDynamicAfterFee} from "../../fee/BaseDynamicAfterFee.sol";
+import {CurrencySettler} from "../../utils/CurrencySettler.sol";
+import {BaseHook} from "../../base/BaseHook.sol";
 
 contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
     using CurrencySettler for Currency;
 
     uint256 private _mockTargetUnspecifiedAmount;
     bool private _mockApplyTarget;
+
+    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     function setMockTargetUnspecifiedAmount(uint256 amount, bool active) public {
         _mockTargetUnspecifiedAmount = amount;
@@ -29,12 +32,11 @@ contract BaseDynamicAfterFeeMock is BaseDynamicAfterFee {
         uint256,
         uint256 feeAmount
     ) internal override {
-        IPoolManager manager = poolManager();
         Currency unspecified = (params.amountSpecified < 0 == params.zeroForOne) ? (key.currency1) : (key.currency0);
 
         // Burn ERC-6909 and take underlying tokens
-        unspecified.settle(manager, address(this), feeAmount, true);
-        unspecified.take(manager, address(this), feeAmount, false);
+        unspecified.settle(poolManager, address(this), feeAmount, true);
+        unspecified.take(poolManager, address(this), feeAmount, false);
     }
 
     function _getTargetUnspecified(address, PoolKey calldata, SwapParams calldata, bytes calldata)

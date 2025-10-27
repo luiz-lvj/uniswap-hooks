@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+// External
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
@@ -8,11 +9,12 @@ import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+// Internal
 import {Oracle} from "./libraries/Oracle.sol";
 import {BaseHook} from "../../base/BaseHook.sol";
 
 /// @dev A hook that enables a Uniswap V4 pool to record price observations and expose an oracle interface
-contract BaseOracleHook is BaseHook {
+abstract contract BaseOracleHook is BaseHook {
     using Oracle for Oracle.Observation[65535];
     using StateLibrary for IPoolManager;
 
@@ -116,7 +118,7 @@ contract BaseOracleHook is BaseHook {
 
         ObservationState memory _observationState = stateById[poolId];
 
-        (, int24 tick,,) = poolManager().getSlot0(poolId);
+        (, int24 tick,,) = poolManager.getSlot0(poolId);
 
         (_observationState.index, _observationState.cardinality) = observationsById[poolId]
         .write(
@@ -152,7 +154,7 @@ contract BaseOracleHook is BaseHook {
     {
         ObservationState memory _observationState = stateById[underlyingPoolId];
 
-        (, int24 tick,,) = poolManager().getSlot0(underlyingPoolId);
+        (, int24 tick,,) = poolManager.getSlot0(underlyingPoolId);
 
         return observationsById[underlyingPoolId]
         .observe(

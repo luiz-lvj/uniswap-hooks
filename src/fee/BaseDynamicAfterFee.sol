@@ -172,7 +172,7 @@ abstract contract BaseDynamicAfterFee is BaseHook, IHookEvents {
 
         if (feeAmount > 0) {
             // Mint ERC-6909 tokens for unspecified currency fee and call handler
-            unspecified.take(poolManager(), address(this), feeAmount.toUint128(), true);
+            unspecified.take(poolManager, address(this), feeAmount.toUint128(), true);
             _afterSwapHandler(key, params, delta, targetUnspecifiedAmount, feeAmount);
 
             // Emit the swap event with the amounts ordered correctly

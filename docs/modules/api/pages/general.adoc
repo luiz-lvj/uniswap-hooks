@@ -16,7 +16,6 @@
 :xref-LiquidityPenaltyHook-getHookPermissions--: xref:general.adoc#LiquidityPenaltyHook-getHookPermissions--
 :xref-LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint48: xref:general.adoc#LiquidityPenaltyHook-MIN_BLOCK_NUMBER_OFFSET-uint48
 :xref-LiquidityPenaltyHook-blockNumberOffset-uint48: xref:general.adoc#LiquidityPenaltyHook-blockNumberOffset-uint48
-:xref-BaseHook-poolManager--: xref:base.adoc#BaseHook-poolManager--
 :xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
@@ -36,6 +35,7 @@
 :xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-poolManager-contract-IPoolManager: xref:base.adoc#BaseHook-poolManager-contract-IPoolManager
 :xref-LiquidityPenaltyHook-BlockNumberOffsetTooLow--: xref:general.adoc#LiquidityPenaltyHook-BlockNumberOffsetTooLow--
 :xref-LiquidityPenaltyHook-NoLiquidityToReceiveDonation--: xref:general.adoc#LiquidityPenaltyHook-NoLiquidityToReceiveDonation--
 :xref-BaseHook-HookNotImplemented--: xref:base.adoc#BaseHook-HookNotImplemented--
@@ -50,7 +50,6 @@
 :xref-BaseDynamicAfterFee-_setTransientApplyTarget-bool-: xref:fee.adoc#BaseDynamicAfterFee-_setTransientApplyTarget-bool-
 :xref-BaseDynamicAfterFee-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-: xref:fee.adoc#BaseDynamicAfterFee-_afterSwap-address-struct-PoolKey-struct-SwapParams-BalanceDelta-bytes-
 :xref-BaseDynamicAfterFee-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-: xref:fee.adoc#BaseDynamicAfterFee-_afterSwapHandler-struct-PoolKey-struct-SwapParams-BalanceDelta-uint256-uint256-
-:xref-BaseHook-poolManager--: xref:base.adoc#BaseHook-poolManager--
 :xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
@@ -70,6 +69,7 @@
 :xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-poolManager-contract-IPoolManager: xref:base.adoc#BaseHook-poolManager-contract-IPoolManager
 :xref-IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookSwap-bytes32-address-int128-int128-uint128-uint128-
 :xref-IHookEvents-HookFee-bytes32-address-uint128-uint128-: xref:interfaces.adoc#IHookEvents-HookFee-bytes32-address-uint128-uint128-
 :xref-IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-: xref:interfaces.adoc#IHookEvents-HookModifyLiquidity-bytes32-address-int128-int128-
@@ -94,7 +94,6 @@
 :xref-LimitOrderHook-_getTick-PoolId-: xref:general.adoc#LimitOrderHook-_getTick-PoolId-
 :xref-LimitOrderHook-getOrderInfo-OrderIdLibrary-OrderId-: xref:general.adoc#LimitOrderHook-getOrderInfo-OrderIdLibrary-OrderId-
 :xref-LimitOrderHook-getHookPermissions--: xref:general.adoc#LimitOrderHook-getHookPermissions--
-:xref-BaseHook-poolManager--: xref:base.adoc#BaseHook-poolManager--
 :xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-
@@ -114,6 +113,7 @@
 :xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-poolManager-contract-IPoolManager: xref:base.adoc#BaseHook-poolManager-contract-IPoolManager
 :xref-LimitOrderHook-Place-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-: xref:general.adoc#LimitOrderHook-Place-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-
 :xref-LimitOrderHook-Fill-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-: xref:general.adoc#LimitOrderHook-Fill-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-
 :xref-LimitOrderHook-Cancel-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-: xref:general.adoc#LimitOrderHook-Cancel-address-OrderIdLibrary-OrderId-struct-PoolKey-int24-bool-uint128-
@@ -150,7 +150,6 @@
 :xref-ReHypothecationHook-_getAmountInYieldSource-Currency-: xref:general.adoc#ReHypothecationHook-_getAmountInYieldSource-Currency-
 :xref-ReHypothecationHook-getHookPermissions--: xref:general.adoc#ReHypothecationHook-getHookPermissions--
 :xref-ReHypothecationHook-receive--: xref:general.adoc#ReHypothecationHook-receive--
-:xref-BaseHook-poolManager--: xref:base.adoc#BaseHook-poolManager--
 :xref-BaseHook-_validateHookAddress-contract-BaseHook-: xref:base.adoc#BaseHook-_validateHookAddress-contract-BaseHook-
 :xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-: xref:base.adoc#BaseHook-beforeInitialize-address-struct-PoolKey-uint160-
 :xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-: xref:base.adoc#BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-
@@ -169,6 +168,7 @@
 :xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
 :xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-: xref:base.adoc#BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-
+:xref-BaseHook-poolManager-contract-IPoolManager: xref:base.adoc#BaseHook-poolManager-contract-IPoolManager
 :xref-ReHypothecationHook-ReHypothecatedLiquidityAdded-address-struct-PoolKey-uint256-uint256-uint256-: xref:general.adoc#ReHypothecationHook-ReHypothecatedLiquidityAdded-address-struct-PoolKey-uint256-uint256-uint256-
 :xref-ReHypothecationHook-ReHypothecatedLiquidityRemoved-address-struct-PoolKey-uint256-uint256-uint256-: xref:general.adoc#ReHypothecationHook-ReHypothecatedLiquidityRemoved-address-struct-PoolKey-uint256-uint256-uint256-
 :xref-ReHypothecationHook-AlreadyInitialized--: xref:general.adoc#ReHypothecationHook-AlreadyInitialized--
@@ -263,7 +263,6 @@ _Available since v0.1.1_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-poolManager--}[`++poolManager()++`]
 * {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
@@ -283,6 +282,7 @@ _Available since v0.1.1_
 * {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
 * {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
 * {xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_afterDonate(, , , , )++`]
+* {xref-BaseHook-poolManager-contract-IPoolManager}[`++poolManager()++`]
 
 [.contract-subindex-inherited]
 .IHooks
@@ -307,9 +307,9 @@ _Available since v0.1.1_
 
 [.contract-item]
 [[LiquidityPenaltyHook-constructor-uint48-]]
-==== `[.contract-item-name]#++constructor++#++(uint48 _blockNumberOffset)++` [.item-kind]#public#
+==== `[.contract-item-name]#++constructor++#++(uint48 _blockNumberOffset)++` [.item-kind]#internal#
 
-Sets the {getBlockNumberOffset}.
+Sets the {getBlockNumberOffset} and the {poolManager} address.
 
 [.contract-item]
 [[LiquidityPenaltyHook-_afterAddLiquidity-address-struct-PoolKey-struct-ModifyLiquidityParams-BalanceDelta-BalanceDelta-bytes-]]
@@ -492,7 +492,6 @@ _Available since v1.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-poolManager--}[`++poolManager()++`]
 * {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
@@ -512,6 +511,7 @@ _Available since v1.1.0_
 * {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
 * {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
 * {xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_afterDonate(, , , , )++`]
+* {xref-BaseHook-poolManager-contract-IPoolManager}[`++poolManager()++`]
 
 [.contract-subindex-inherited]
 .IHooks
@@ -693,7 +693,6 @@ _Available since v1.1.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-poolManager--}[`++poolManager()++`]
 * {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-_beforeInitialize-address-struct-PoolKey-uint160-}[`++_beforeInitialize(, , )++`]
@@ -713,6 +712,7 @@ _Available since v1.1.0_
 * {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
 * {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
 * {xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_afterDonate(, , , , )++`]
+* {xref-BaseHook-poolManager-contract-IPoolManager}[`++poolManager()++`]
 
 [.contract-subindex-inherited]
 .IHooks
@@ -1122,7 +1122,6 @@ _Available since v1.2.0_
 
 [.contract-subindex-inherited]
 .BaseHook
-* {xref-BaseHook-poolManager--}[`++poolManager()++`]
 * {xref-BaseHook-_validateHookAddress-contract-BaseHook-}[`++_validateHookAddress(hook)++`]
 * {xref-BaseHook-beforeInitialize-address-struct-PoolKey-uint160-}[`++beforeInitialize(sender, key, sqrtPriceX96)++`]
 * {xref-BaseHook-afterInitialize-address-struct-PoolKey-uint160-int24-}[`++afterInitialize(sender, key, sqrtPriceX96, tick)++`]
@@ -1141,6 +1140,7 @@ _Available since v1.2.0_
 * {xref-BaseHook-_beforeDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_beforeDonate(, , , , )++`]
 * {xref-BaseHook-afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++afterDonate(sender, key, amount0, amount1, hookData)++`]
 * {xref-BaseHook-_afterDonate-address-struct-PoolKey-uint256-uint256-bytes-}[`++_afterDonate(, , , , )++`]
+* {xref-BaseHook-poolManager-contract-IPoolManager}[`++poolManager()++`]
 
 [.contract-subindex-inherited]
 .IHooks

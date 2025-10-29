@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {BaseDynamicAfterFeeMock} from "src/mocks/BaseDynamicAfterFeeMock.sol";
+// External imports
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
@@ -9,11 +9,14 @@ import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import {Deploy} from "@uniswap/v4-periphery/test/shared/Deploy.sol";
-import {HookTest} from "test/utils/HookTest.sol";
-import {IV4Quoter} from "test/utils/interfaces/IV4Quoter.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 // solhint-disable-next-line no-unused-import
 import {V4Quoter} from "@uniswap/v4-periphery/src/lens/V4Quoter.sol";
+
+// Internal imports
+import {BaseDynamicAfterFeeMock} from "../../src/mocks/fee/BaseDynamicAfterFeeMock.sol";
+import {HookTest} from "../utils/HookTest.sol";
+import {IV4Quoter} from "../utils/interfaces/IV4Quoter.sol";
 
 contract BaseDynamicAfterFeeTest is HookTest {
     using SafeCast for *;
@@ -32,7 +35,11 @@ contract BaseDynamicAfterFeeTest is HookTest {
                     uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG)
                 ))
         );
-        deployCodeTo("src/mocks/BaseDynamicAfterFeeMock.sol:BaseDynamicAfterFeeMock", address(dynamicFeesHook));
+        deployCodeTo(
+            "src/mocks/fee/BaseDynamicAfterFeeMock.sol:BaseDynamicAfterFeeMock",
+            abi.encode(address(manager)),
+            address(dynamicFeesHook)
+        );
 
         deployMintAndApprove2Currencies();
 

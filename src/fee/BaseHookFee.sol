@@ -84,7 +84,7 @@ abstract contract BaseHookFee is BaseHook, IHookEvents {
 
         // Take the fee amount to the hook as ERC-6909 claims in order to save gas,
         // which can be redeemed back for tokens with the PoolManager at any point.
-        unspecified.take(poolManager(), address(this), feeAmount, true);
+        unspecified.take(poolManager, address(this), feeAmount, true);
 
         // Emit the hook fee event with the amounts ordered correctly
         if (unspecified == key.currency0) {

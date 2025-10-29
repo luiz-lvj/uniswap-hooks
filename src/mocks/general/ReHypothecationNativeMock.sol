@@ -8,9 +8,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 // Internal imports
-import {ReHypothecationHook} from "../general/ReHypothecationHook.sol";
+import {BaseHook} from "../../base/BaseHook.sol";
+import {ReHypothecationHook} from "../../general/ReHypothecationHook.sol";
 import {ERC4626YieldSourceMock} from "./ReHypothecationERC4626Mock.sol";
 
 /// @notice A mock implementation of a native yield source.
@@ -74,8 +75,13 @@ contract ReHypothecationNativeMock is ReHypothecationHook {
     /// @dev Error thrown when attempting to use an invalid yield source.
     error InvalidYieldSource();
 
-    constructor(address yieldSource0_, address yieldSource1_) ERC20("ReHypothecatatedShare", "RHM") {
-        if (yieldSource0_ == address(0) || yieldSource1_ == address(0)) revert InvalidYieldSource();
+    constructor(IPoolManager _poolManager, address yieldSource0_, address yieldSource1_)
+        BaseHook(_poolManager)
+        ERC20("ReHypothecatatedShare", "RHM")
+    {
+        if (yieldSource0_ == address(0) || yieldSource1_ == address(0)) {
+            revert InvalidYieldSource();
+        }
         yieldSource0 = yieldSource0_;
         yieldSource1 = yieldSource1_;
     }

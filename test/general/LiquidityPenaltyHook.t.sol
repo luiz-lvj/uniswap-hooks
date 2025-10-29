@@ -16,16 +16,17 @@ import {toBalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {CustomRevert} from "@uniswap/v4-core/src/libraries/CustomRevert.sol";
 
 // Internal imports
-import {HookTest} from "test/utils/HookTest.sol";
+import {HookTest} from "../utils/HookTest.sol";
 import {BalanceDeltaAssertions} from "../utils/BalanceDeltaAssertions.sol";
-import {LiquidityPenaltyHook} from "src/general/LiquidityPenaltyHook.sol";
+import {LiquidityPenaltyHook} from "../../src/general/LiquidityPenaltyHook.sol";
+import {LiquidityPenaltyHookMock} from "../../src/mocks/general/LiquidityPenaltyHookMock.sol";
 
 contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
     int24 constant TICK_LOWER = -600;
     int24 constant TICK_UPPER = 600;
     int256 constant LIQUIDITY_AMOUNT_1E18 = 1e18;
 
-    LiquidityPenaltyHook hook;
+    LiquidityPenaltyHookMock hook;
     PoolKey noHookKey;
     uint24 fee = 1000; // 0.1%
 
@@ -39,7 +40,7 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         deployFreshManagerAndRouters();
         deployMintAndApprove2Currencies();
 
-        hook = LiquidityPenaltyHook(
+        hook = LiquidityPenaltyHookMock(
             address(
                 uint160(
                     Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
@@ -47,7 +48,11 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
                 )
             )
         );
-        deployCodeTo("src/general/LiquidityPenaltyHook.sol:LiquidityPenaltyHook", abi.encode(1), address(hook));
+        deployCodeTo(
+            "src/mocks/general/LiquidityPenaltyHookMock.sol:LiquidityPenaltyHookMock",
+            abi.encode(address(manager), 1),
+            address(hook)
+        );
 
         (key,) = initPool(currency0, currency1, IHooks(address(hook)), fee, SQRT_PRICE_1_1);
         (noHookKey,) = initPool(currency0, currency1, IHooks(address(0)), fee, SQRT_PRICE_1_1);
@@ -58,7 +63,11 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
 
     function test_deploy_LowOffset_reverts() public {
         vm.expectRevert();
-        deployCodeTo("src/general/LiquidityPenaltyHook.sol:LiquidityPenaltyHook", abi.encode(0), address(hook));
+        deployCodeTo(
+            "src/mocks/general/LiquidityPenaltyHookMock.sol:LiquidityPenaltyHookMock",
+            abi.encode(address(manager), 0),
+            address(hook)
+        );
     }
 
     function test_noSwaps() public {
@@ -380,7 +389,7 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         vm.assume(offset > 1);
         vm.assume(removeBlockQuantity < offset);
 
-        LiquidityPenaltyHook newHook = LiquidityPenaltyHook(
+        LiquidityPenaltyHookMock newHook = LiquidityPenaltyHookMock(
             address(
                 uint160(
                     Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
@@ -389,7 +398,11 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
             ) // 2**96 is an offset to avoid collision with the hook address already in the test
         );
 
-        deployCodeTo("src/general/LiquidityPenaltyHook.sol:LiquidityPenaltyHook", abi.encode(offset), address(newHook));
+        deployCodeTo(
+            "src/mocks/general/LiquidityPenaltyHookMock.sol:LiquidityPenaltyHookMock",
+            abi.encode(address(manager), offset),
+            address(newHook)
+        );
 
         (PoolKey memory poolKey,) = initPool(currency0, currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
 
@@ -430,7 +443,7 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
         vm.assume(offset > 1);
         vm.assume(removeBlockQuantity > offset);
 
-        LiquidityPenaltyHook newHook = LiquidityPenaltyHook(
+        LiquidityPenaltyHookMock newHook = LiquidityPenaltyHookMock(
             address(
                 uint160(
                     Hooks.AFTER_ADD_LIQUIDITY_FLAG | Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
@@ -439,7 +452,11 @@ contract LiquidityPenaltyHookTest is HookTest, BalanceDeltaAssertions {
             ) // 2**96 is an offset to avoid collision with the hook address already in the test
         );
 
-        deployCodeTo("src/general/LiquidityPenaltyHook.sol:LiquidityPenaltyHook", abi.encode(offset), address(newHook));
+        deployCodeTo(
+            "src/mocks/general/LiquidityPenaltyHookMock.sol:LiquidityPenaltyHookMock",
+            abi.encode(address(manager), offset),
+            address(newHook)
+        );
 
         (PoolKey memory poolKey,) = initPool(currency0, currency1, IHooks(address(newHook)), fee, SQRT_PRICE_1_1);
 

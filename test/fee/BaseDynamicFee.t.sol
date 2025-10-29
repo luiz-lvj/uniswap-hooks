@@ -17,9 +17,9 @@ import {Pool} from "@uniswap/v4-core/src/libraries/Pool.sol";
 import {SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {CustomRevert} from "@uniswap/v4-core/src/libraries/CustomRevert.sol";
 // Internal imports
-import {HookTest} from "test/utils/HookTest.sol";
-import {BaseDynamicFee} from "src/fee/BaseDynamicFee.sol";
-import {BaseDynamicFeeMock} from "src/mocks/BaseDynamicFeeMock.sol";
+import {HookTest} from "../utils/HookTest.sol";
+import {BaseDynamicFee} from "../../src/fee/BaseDynamicFee.sol";
+import {BaseDynamicFeeMock} from "../../src/mocks/fee/BaseDynamicFeeMock.sol";
 
 contract BaseDynamicFeeTest is HookTest {
     using StateLibrary for IPoolManager;
@@ -32,8 +32,8 @@ contract BaseDynamicFeeTest is HookTest {
 
         dynamicFeesHooks = BaseDynamicFeeMock(address(uint160(Hooks.AFTER_INITIALIZE_FLAG)));
         deployCodeTo(
-            "src/mocks/BaseDynamicFeeMock.sol:BaseDynamicFeeMock",
-            abi.encode(address(this), address(this)),
+            "src/mocks/fee/BaseDynamicFeeMock.sol:BaseDynamicFeeMock",
+            abi.encode(address(manager), address(this), address(this)),
             address(dynamicFeesHooks)
         );
 

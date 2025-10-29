@@ -9,9 +9,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 // Internal imports
-import {ReHypothecationHook} from "../general/ReHypothecationHook.sol";
+import {BaseHook} from "../../base/BaseHook.sol";
+import {ReHypothecationHook} from "../../general/ReHypothecationHook.sol";
 
 /// @title ERC4626Mock
 /// @notice A mock implementation of the ERC-4626 yield source.
@@ -33,8 +34,13 @@ contract ReHypothecationERC4626Mock is ReHypothecationHook {
     address private immutable yieldSource0;
     address private immutable yieldSource1;
 
-    constructor(address yieldSource0_, address yieldSource1_) ERC20("ReHypothecatatedShare", "RHM") {
-        if (yieldSource0_ == address(0) || yieldSource1_ == address(0)) revert InvalidYieldSource();
+    constructor(IPoolManager _poolManager, address yieldSource0_, address yieldSource1_)
+        BaseHook(_poolManager)
+        ERC20("ReHypothecatatedShare", "RHM")
+    {
+        if (yieldSource0_ == address(0) || yieldSource1_ == address(0)) {
+            revert InvalidYieldSource();
+        }
         yieldSource0 = yieldSource0_;
         yieldSource1 = yieldSource1_;
     }

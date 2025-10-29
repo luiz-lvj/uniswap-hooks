@@ -2,8 +2,6 @@
 pragma solidity ^0.8.26;
 
 // External imports
-import {BaseHook} from "src/base/BaseHook.sol";
-import {BaseHookMock, BaseHookMockReverts} from "src/mocks/BaseHookMock.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
@@ -11,7 +9,9 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
 // Internal imports
-import {HookTest} from "test/utils/HookTest.sol";
+import {HookTest} from "../utils/HookTest.sol";
+import {BaseHook} from "../../src/base/BaseHook.sol";
+import {BaseHookMock, BaseHookMockReverts} from "../../src/mocks/base/BaseHookMock.sol";
 
 contract BaseHookTest is HookTest {
     BaseHookMock hook;
@@ -30,10 +30,12 @@ contract BaseHookTest is HookTest {
                 )
             )
         );
-        deployCodeTo("src/mocks/BaseHookMock.sol:BaseHookMock", address(hook));
+        deployCodeTo("src/mocks/base/BaseHookMock.sol:BaseHookMock", abi.encode(address(manager)), address(hook));
 
         hookReverts = BaseHookMockReverts(address(0x1000000000000000000000000000000000003FF0));
-        deployCodeTo("src/mocks/BaseHookMock.sol:BaseHookMockReverts", address(hookReverts));
+        deployCodeTo(
+            "src/mocks/base/BaseHookMock.sol:BaseHookMockReverts", abi.encode(address(manager)), address(hookReverts)
+        );
 
         deployMintAndApprove2Currencies();
 

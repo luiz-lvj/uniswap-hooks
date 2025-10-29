@@ -6,7 +6,6 @@ pragma solidity ^0.8.26;
 // External imports
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import {
@@ -90,8 +89,6 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         override
         returns (bytes4, BeforeSwapDelta returnDelta, uint24)
     {
-        IPoolManager manager = poolManager();
-
         // Determine if the swap is exact input or exact output
         bool exactInput = params.amountSpecified < 0;
 
@@ -111,17 +108,17 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         if (exactInput) {
             // For exact input swaps:
             // 1. Take the specified input (user-given) amount from this contract's balance in the pool
-            specified.take(manager, address(this), specifiedAmount, true);
+            specified.take(poolManager, address(this), specifiedAmount, true);
             // 2. Send the calculated output amount to this contract's balance in the pool
-            unspecified.settle(manager, address(this), unspecifiedAmount, true);
+            unspecified.settle(poolManager, address(this), unspecifiedAmount, true);
 
             returnDelta = toBeforeSwapDelta(specifiedAmount.toInt128(), -unspecifiedAmount.toInt128());
         } else {
             // For exact output swaps:
             // 1. Take the calculated input amount from this contract's balance in the pool
-            unspecified.take(manager, address(this), unspecifiedAmount, true);
+            unspecified.take(poolManager, address(this), unspecifiedAmount, true);
             // 2. Send the specified (user-given) output amount to this contract's balance in the pool
-            specified.settle(manager, address(this), specifiedAmount, true);
+            specified.settle(poolManager, address(this), specifiedAmount, true);
 
             returnDelta = toBeforeSwapDelta(-specifiedAmount.toInt128(), unspecifiedAmount.toInt128());
         }
@@ -167,7 +164,7 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
     {
         (int128 amount0, int128 amount1) = abi.decode(params, (int128, int128));
         (callerDelta, feesAccrued) = abi.decode(
-            poolManager().unlock(abi.encode(CallbackDataCustom(msg.sender, amount0, amount1))),
+            poolManager.unlock(abi.encode(CallbackDataCustom(msg.sender, amount0, amount1))),
             (BalanceDelta, BalanceDelta)
         );
     }
@@ -186,7 +183,6 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         onlyPoolManager
         returns (bytes memory returnData)
     {
-        IPoolManager manager = poolManager();
         CallbackDataCustom memory data = abi.decode(rawData, (CallbackDataCustom));
 
         // slither-disable-next-line uninitialized-local
@@ -202,9 +198,9 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         // Remove liquidity if amount0 is negative
         if (data.amount0 < 0) {
             // Burns ERC-6909 tokens to receive tokens
-            key.currency0.settle(manager, address(this), uint256(int256(-data.amount0)), true);
+            key.currency0.settle(poolManager, address(this), uint256(int256(-data.amount0)), true);
             // Sends tokens from the pool to the user
-            key.currency0.take(manager, data.sender, uint256(int256(-data.amount0)), false);
+            key.currency0.take(poolManager, data.sender, uint256(int256(-data.amount0)), false);
             // Record the amount so that it can be then encoded into the delta
             amount0 = -data.amount0;
         }
@@ -212,9 +208,9 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         // Remove liquidity if amount1 is negative
         if (data.amount1 < 0) {
             // Burns ERC-6909 tokens to receive tokens
-            key.currency1.settle(manager, address(this), uint256(int256(-data.amount1)), true);
+            key.currency1.settle(poolManager, address(this), uint256(int256(-data.amount1)), true);
             // Sends tokens from the pool to the user
-            key.currency1.take(manager, data.sender, uint256(int256(-data.amount1)), false);
+            key.currency1.take(poolManager, data.sender, uint256(int256(-data.amount1)), false);
             // Record the amount so that it can be then encoded into the delta
             amount1 = -data.amount1;
         }
@@ -222,9 +218,9 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         // Add liquidity if amount0 is positive
         if (data.amount0 > 0) {
             // First settle (send) tokens from user to pool
-            key.currency0.settle(manager, data.sender, uint256(int256(data.amount0)), false);
+            key.currency0.settle(poolManager, data.sender, uint256(int256(data.amount0)), false);
             // Take (mint) ERC-6909 tokens to be received by this hook
-            key.currency0.take(manager, address(this), uint256(int256(data.amount0)), true);
+            key.currency0.take(poolManager, address(this), uint256(int256(data.amount0)), true);
             // Record the amount so that it can be then encoded into the delta
             amount0 = -data.amount0;
         }
@@ -232,9 +228,9 @@ abstract contract BaseCustomCurve is BaseCustomAccounting {
         // Add liquidity if amount1 is positive
         if (data.amount1 > 0) {
             // First settle (send) tokens from user to pool
-            key.currency1.settle(manager, data.sender, uint256(int256(data.amount1)), false);
+            key.currency1.settle(poolManager, data.sender, uint256(int256(data.amount1)), false);
             // Take (mint) ERC-6909 tokens to be received by this hook
-            key.currency1.take(manager, address(this), uint256(int256(data.amount1)), true);
+            key.currency1.take(poolManager, address(this), uint256(int256(data.amount1)), true);
             // Record the amount so that it can be then encoded into the delta
             amount1 = -data.amount1;
         }

@@ -1091,6 +1091,7 @@ _Available since v1.2.0_
 [.contract-subindex-inherited]
 .ReentrancyGuardTransient
 * {xref-ReentrancyGuardTransient-_reentrancyGuardEntered--}[`++_reentrancyGuardEntered()++`]
+* {xref-ReentrancyGuardTransient-_reentrancyGuardStorageSlot--}[`++_reentrancyGuardStorageSlot()++`]
 
 [.contract-subindex-inherited]
 .ERC20

@@ -25,7 +25,8 @@ jobs:
       - name: Pack
         id: pack
         run: |
-          TARBALL=$(npm pack)
+          npm pack
+          TARBALL="$(ls -t *.tgz | head -1)"
           echo "tarball=$TARBALL" >> $GITHUB_OUTPUT
       
       - name: Upload tarball artifact

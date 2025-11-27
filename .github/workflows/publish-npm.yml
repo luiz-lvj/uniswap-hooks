@@ -7,6 +7,11 @@ on:
         description: 'Dry run only (no actual publish)'
         type: boolean
         default: true
+      tag:
+        description: 'NPM dist-tag (latest=audited stable, dev=unaudited, next=RC)'
+        type: string
+        required: true
+        default: 'dev'
 
 jobs:
   publish:
@@ -39,7 +44,7 @@ jobs:
         if: inputs.dry_run == false
         run: |
           echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
-          npm publish ${{ steps.pack.outputs.tarball }} --access public
+          npm publish ${{ steps.pack.outputs.tarball }} --tag ${{ inputs.tag }} --access public
           rm .npmrc
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

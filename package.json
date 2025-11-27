@@ -1,5 +1,5 @@
 {
-  "name": "uniswap-hooks",
+  "name": "@openzeppelin/uniswap-hooks",
   "version": "1.1.0",
   "description": "Solidity library for secure and modular Uniswap hooks.",
   "files": [

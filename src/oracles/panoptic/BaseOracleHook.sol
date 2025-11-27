@@ -120,8 +120,7 @@ abstract contract BaseOracleHook is BaseHook {
 
         (, int24 tick,,) = poolManager.getSlot0(poolId);
 
-        (_observationState.index, _observationState.cardinality) = observationsById[poolId]
-        .write(
+        (_observationState.index, _observationState.cardinality) = observationsById[poolId].write(
             _observationState.index,
             uint32(block.timestamp),
             tick,
@@ -156,8 +155,7 @@ abstract contract BaseOracleHook is BaseHook {
 
         (, int24 tick,,) = poolManager.getSlot0(underlyingPoolId);
 
-        return observationsById[underlyingPoolId]
-        .observe(
+        return observationsById[underlyingPoolId].observe(
             uint32(block.timestamp),
             secondsAgos,
             tick,

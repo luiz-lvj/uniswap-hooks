@@ -25,7 +25,7 @@ jobs:
       - name: Pack
         id: pack
         run: |
-          TARBALL=$(npm pack)
+          TARBALL="$(npm pack | tee /dev/stderr | tail -1)"
           echo "tarball=$TARBALL" >> $GITHUB_OUTPUT
       
       - name: Upload tarball artifact

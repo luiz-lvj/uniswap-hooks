@@ -219,8 +219,8 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
         returns (bytes4, BeforeSwapDelta, uint24)
     {
         // Get the liquidity to be used from the amounts currently deposited in the yield sources
-        uint256 liquidity = _getLiquidityToUse();
-        if (liquidity > 0) _modifyLiquidity(liquidity.toInt256());
+        uint256 liquidityToUse = _getLiquidityToUse();
+        if (liquidityToUse > 0) _modifyLiquidity(liquidityToUse.toInt256());
 
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }

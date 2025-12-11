@@ -30,35 +30,36 @@ import {CurrencySettler} from "../utils/CurrencySettler.sol";
  * @dev A Uniswap V4 hook that enables liquidity rehypothecation into external yield sources.
  *
  * Allows users to deposit assets into external yield-generating sources (i.e. ERC-4626 vaults or lending protocols)
- * while maintaining that same liquidity available for swaps by performing Just-in-Time (JIT) liquidity provisioning.
+ * while maintaining that same liquidity available for swaps, by performing Just-in-Time (JIT) liquidity provisioning.
  *
- * Assets earn yield at the yield sources when idle, and are temporarily injected as liquidity into the pool only
+ * Assets earn yield at the yield sources when idle, before being temporarily injected as liquidity into the pool only
  * when needed for swap execution, then immediately withdrawn back to yield sources to continue earning yield.
  *
  * Conceptually, the hook acts as an intermediary that manages:
  * - the user-facing ERC20 share token (representing rehypothecated liquidity).
- * - the underlying relationship between yield sources and the pool's liquidity.
+ * - the underlying relationship between yield sources deposits and the pool's liquidity.
  *
- * Since the hook must own the liquidity in both the external yield sources and the pool in order to move the liquidity
- * between the two, a single hook-owned liquidity position is used for all the liquidity providers, defaulting to a UniswapV2
- * like full-range position.
+ * Since the hook must own the liquidity positions in both the external yield sources and the pool in order to transfer it
+ * between the two, a single hook-owned liquidity position is shared between all the liquidity providers, defaulting to a
+ * UniswapV2 like full-range position.
  *
- * NOTE: Liquidity must be added and removed in the same ratio as the balances in the yield sources.
+ * NOTE: Since the hook owns the single liquidity position, liquidity must be added and removed in the same ratio as the
+ * balances in the yield sources.
  *
- * NOTE: Since the hook owns the liquidity position, it is possible to perform "leveraged liquidity" strategies,
+ * NOTE: Since the hook owns the single liquidity position, it is possible to perform "leveraged liquidity" strategies,
  * which would give better pricing to swappers at the cost of the profitability of LP's and increased risks. See {_getLiquidityToUse}
  *
- * WARNING: as the assets are rehypothecated into external yield sources, the hook inherits direct exposure to them,
- * such as variations in the yield rates, liquidity, and other risks associated.
+ * WARNING: As the assets are rehypothecated into external yield sources, there is direct exposure to their risks,
+ * such as variations in the yield rates, rebalances, impermanent loss, and other risks associated.
  *
  * WARNING: This hook relies on the PoolManager singleton token reserves for flash accounting debts and credits during swaps.
- * During `afterSwap`, the hook briefly takes tokens from the PoolManager to settle deltas even before users transfer
- * their swap tokens. As a consequence, the PoolManager singleton may lack sufficient reserves for illiquid tokens, between the
- * swap being executed and the user sending their tokens, preventing swaps from being executed until the PoolManager accumulates enough tokens.
- * This can be mitigated by maintaining some permanent pool liquidity alongside rehypothecated liquidity.
+ * During `afterSwap`, the hook briefly generates token debts to the PoolManager even before users transfer their swap tokens.
+ * As a consequence, the PoolManager singleton may lack sufficient reserves for illiquid tokens in the instants between the swap
+ * executed and the posterior payment from the user, preventing swaps from being executed until the PoolManager accumulates enough tokens.
+ * Altrough it is very unlikely to happen, it can be mitigated by maintaining some permanent pool liquidity alongside rehypothecated liquidity.
  *
- * WARNING: Liquidity additions and removals may be affected by slippage. Users can protect against unexpected slippage in general by
- * verifying the amount received is as expected, using a wrapper that performs these checks.
+ * WARNING: Liquidity additions and removals may be affected by slippage. Users can protect against unexpected slippage
+ * in general by verifying the amount received is as expected, using a wrapper that performs these checks.
  *
  * WARNING: This is experimental software and is provided on an "as is" and "as available" basis.
  * We do not give any warranties and will not be liable for any losses incurred through any use of
@@ -108,16 +109,16 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
     );
 
     /**
-     * @dev Returns the `poolKey` for the hook pool.
+     * @dev Returns the `poolKey` for the hook pool. Note that the hook supports only one pool key.
      */
     function getPoolKey() public view returns (PoolKey memory poolKey) {
         return _poolKey;
     }
 
     /**
-     * @dev Initialize the hook's `poolKey`. The stored key by the hook is unique and
+     * @dev Initialize the hook's `poolKey` pool. The key stored by the hook is unique and
      * should not be modified so that it can safely be used across the hook's lifecycle.
-     *
+     * Note that the hook supports only one pool key.
      */
     function _beforeInitialize(address, PoolKey calldata key, uint160) internal virtual override returns (bytes4) {
         if (address(_poolKey.hooks) != address(0)) revert AlreadyInitialized();
@@ -126,11 +127,11 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
     }
 
     /**
-     * @dev Adds rehypothecated liquidity to yield sources and mints shares to the caller.
+     * @dev Adds rehypothecated liquidity to their corresponding yield sources and mints `shares` to the `receiver`.
      *
      * Liquidity is added in the ratio determined by the hook's existing balances in yield sources.
-     * Assets are deposited into yield sources where they earn returns when idle and can be
-     * dynamically used as pool liquidity during swaps.
+     * Assets are deposited into yield sources where they earn yield when idle and can be dynamically
+     *  used as pool liquidity during swaps.
      *
      * Returns a balance `delta` representing the assets deposited into the hook.
      *
@@ -165,11 +166,11 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
     }
 
     /**
-     * @dev Removes rehypothecated liquidity from yield sources and burns caller's shares.
+     * @dev Removes rehypothecated liquidity from their corresponding yield sources and burns `shares` from the caller.
      *
      * Liquidity is withdrawn in the ratio determined by the hook's existing balances in yield sources.
-     * Assets are withdrawn from yield sources where they were generating yield, allowing users to
-     * exit their rehypothecated position and reclaim their underlying tokens.
+     * Assets are withdrawn from yield sources where they were generating yield, allowing users to exit their
+     * rehypothecated position and reclaim their underlying tokens.
      *
      * Returns a balance `delta` representing the assets withdrawn from the hook.
      *
@@ -194,66 +195,6 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
         emit ReHypothecatedLiquidityRemoved(msg.sender, _poolKey, shares, amount0, amount1);
 
         return toBalanceDelta(int256(amount0).toInt128(), int256(amount1).toInt128());
-    }
-
-    /**
-     * @dev Preview the amounts of currency0 and currency1 required for minting a specific amount of shares.
-     *
-     * NOTE: Rounds up, benefiting current liquidity providers.
-     */
-    function previewMint(uint256 shares) public view virtual returns (uint256 amount0, uint256 amount1) {
-        return _sharesToAmounts(shares, Math.Rounding.Ceil);
-    }
-
-    /**
-     * @dev Preview the amounts of currency0 and currency1 required for redeeming a specific amount of shares.
-     *
-     * NOTE: Rounds down, benefiting current liquidity providers.
-     */
-    function previewRedeem(uint256 shares) public view virtual returns (uint256 amount0, uint256 amount1) {
-        return _sharesToAmounts(shares, Math.Rounding.Floor);
-    }
-
-    /**
-     * @dev Calculates the amounts of currency0 and currency1 required for minting or redeeming a given amount of shares.
-     *
-     * If the hook has not emitted shares yet, the initial mint/redeem ratio is determined by the internal pool price.
-     * Otherwise, it is determined by the ratio of the hook balances in the yield sources.
-     */
-    function _sharesToAmounts(uint256 shares, Math.Rounding rounding)
-        internal
-        view
-        virtual
-        returns (uint256 amount0, uint256 amount1)
-    {
-        // If the hook has not emitted shares yet, then consider `liquidity == shares`
-        if (totalSupply() == 0) {
-            (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
-            return LiquidityAmounts.getAmountsForLiquidity(
-                currentSqrtPriceX96,
-                TickMath.getSqrtPriceAtTick(getTickLower()),
-                TickMath.getSqrtPriceAtTick(getTickUpper()),
-                shares.toUint128()
-            );
-        } else {
-            amount0 = _shareToAmount(shares, _poolKey.currency0, rounding);
-            amount1 = _shareToAmount(shares, _poolKey.currency1, rounding);
-        }
-    }
-
-    /**
-     * @dev converts a given `shares` amount to the corresponding `currency` amount using
-     * the given rounding direction.
-     */
-    function _shareToAmount(uint256 shares, Currency currency, Math.Rounding rounding)
-        internal
-        view
-        virtual
-        returns (uint256 amount)
-    {
-        uint256 totalAmount = _getAmountInYieldSource(currency);
-        if (totalAmount == 0) return 0;
-        return shares.mulDiv(totalAmount, totalSupply(), rounding);
     }
 
     /**
@@ -303,7 +244,7 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
         returns (bytes4, int128)
     {
         // Remove all of the hook owned liquidity from the pool
-        uint128 liquidity = _getLiquidityToTake();
+        uint128 liquidity = _getHookPositionLiquidity();
         if (liquidity > 0) {
             _modifyLiquidity(-liquidity.toInt256());
 
@@ -316,22 +257,99 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
     }
 
     /**
+     * @dev Takes or settles any pending `currencyDelta` delta with the poolManager by transferring from the yield
+     * sources to the poolManager and vice versa, effectively neutralizing the Flash Accounting deltas before being
+     * able to lock the poolManager again.
+     */
+    function _resolveHookDelta(Currency currency) internal virtual {
+        int256 currencyDelta = poolManager.currencyDelta(address(this), currency);
+        if (currencyDelta > 0) {
+            currency.take(poolManager, address(this), currencyDelta.toUint256(), false);
+            _depositToYieldSource(currency, currencyDelta.toUint256());
+        }
+        if (currencyDelta < 0) {
+            _withdrawFromYieldSource(currency, (-currencyDelta).toUint256());
+            currency.settle(poolManager, address(this), (-currencyDelta).toUint256(), false);
+        }
+    }
+
+    /**
+     * @dev Preview the amounts of currency0 and currency1 required for minting a specific amount of shares.
+     *
+     * NOTE: Rounds up, benefiting current liquidity providers.
+     */
+    function previewMint(uint256 shares) public view virtual returns (uint256 amount0, uint256 amount1) {
+        return _sharesToAmounts(shares, Math.Rounding.Ceil);
+    }
+
+    /**
+     * @dev Preview the amounts of currency0 and currency1 to be received for redeeming a specific amount of shares.
+     *
+     * NOTE: Rounds down, benefiting current liquidity providers.
+     */
+    function previewRedeem(uint256 shares) public view virtual returns (uint256 amount0, uint256 amount1) {
+        return _sharesToAmounts(shares, Math.Rounding.Floor);
+    }
+
+    /**
+     * @dev Calculates the amounts of currency0 and currency1 required for minting or redeeming a given amount of shares.
+     *
+     * If the hook has not emitted shares yet, the initial mint/redeem ratio is determined by the internal pool price.
+     * Otherwise, it is determined by the ratio of the hook balances in the yield sources.
+     */
+    function _sharesToAmounts(uint256 shares, Math.Rounding rounding)
+        internal
+        view
+        virtual
+        returns (uint256 amount0, uint256 amount1)
+    {
+        // If the hook has not emitted shares yet, then consider `liquidity == shares`
+        if (totalSupply() == 0) {
+            (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
+            return LiquidityAmounts.getAmountsForLiquidity(
+                currentSqrtPriceX96,
+                TickMath.getSqrtPriceAtTick(getTickLower()),
+                TickMath.getSqrtPriceAtTick(getTickUpper()),
+                shares.toUint128()
+            );
+        } else {
+            amount0 = _shareToAmount(shares, _poolKey.currency0, rounding);
+            amount1 = _shareToAmount(shares, _poolKey.currency1, rounding);
+        }
+    }
+
+    /**
+     * @dev Converts a given `shares` amount to the corresponding `currency` amount using
+     * the given rounding direction.
+     */
+    function _shareToAmount(uint256 shares, Currency currency, Math.Rounding rounding)
+        internal
+        view
+        virtual
+        returns (uint256 amount)
+    {
+        uint256 totalAmount = _getAmountInYieldSource(currency);
+        if (totalAmount == 0) return 0;
+        return shares.mulDiv(totalAmount, totalSupply(), rounding);
+    }
+
+    /**
      * @dev Calculates the `liquidity` to be provided just-in-time for incoming swaps.
      *
      * By default, returns the maximum liquidity that can be provided given the current balances
      * of the hook in the yield sources.
      *
      * Since the internal pool price (ratio of currency0 to currency1) must be preserved for providing
-     * liquidity to the single hook-owned position range, not necessarily all the assets in the yield sources
-     * may be utilizable as liquidity if the ratio has diverged from the internal pool price.
+     * liquidity to the single hook-owned position range, not necessarily all the assets in the yield
+     * sources may be utilizable as liquidity if the ratio has diverged from the internal pool price.
      *
      * i.e if the pool price is currently [1:1], but due to divergences in the yield sources the assets
-     * are [100, 110], then only [100, 100] is utilizable and will be returned by this function, as it is
-     * the maximum amount of assets utilizable given the pool price ratio.
+     * are [100, 110], then only [100, 100] is utilizable and will be returned by this function in equivalent
+     * liquidity units, as it is the maximum amount of assets utilizable given the current pool price ratio.
      *
-     * NOTE: Since liquidity is provided and withdrawn transiently during flash accounting, it
-     * can be virtually inflated for performing "leveraged liquidity" strategies, which would
-     * give better pricing to swappers at the cost of the profitability of LP's and increased risks.
+     * NOTE: Since liquidity is provided and withdrawn transiently during flash accounting, it can be virtually
+     * inflated for performing "leveraged liquidity" strategies, which would give better pricing to swappers at
+     * the cost of the profitability of LP's and increased risks.
      */
     function _getLiquidityToUse() internal view virtual returns (uint256) {
         (uint160 currentSqrtPriceX96,,,) = poolManager.getSlot0(_poolKey.toId());
@@ -348,29 +366,13 @@ abstract contract ReHypothecationHook is BaseHook, ERC20, ReentrancyGuardTransie
      * @dev Retrieves the current `liquidity` of the hook owned liquidity position in the `_poolKey` pool.
      *
      * NOTE: Given that just-in-time liquidity provisioning is performed, this function will only return non-zero values
-     * while the liquidity is actually inside the pool between `beforeSwap` and `afterSwap`). It will return zero in any
-     * other point in the hook lifecycle. For determining the hook balances in any other point, use `_getAmountInYieldSource`.
+     * while the liquidity is briefly inside the pool, which is exclusively between `beforeSwap` and `afterSwap`). It will
+     * return zero in any other point in the hook lifecycle. For determining the hook balances in any other point, use
+     * {_getAmountInYieldSource}.
      */
-    function _getLiquidityToTake() internal view virtual returns (uint128 liquidity) {
+    function _getHookPositionLiquidity() internal view virtual returns (uint128 liquidity) {
         bytes32 positionKey = Position.calculatePositionKey(address(this), getTickLower(), getTickUpper(), bytes32(0));
         return poolManager.getPositionLiquidity(_poolKey.toId(), positionKey);
-    }
-
-    /**
-     * @dev Takes or settles any pending `currencyDelta` amount with the poolManager
-     * by transfering from the yield sources to the poolManager and vice versa,
-     * neutralizing the Flash Accounting deltas before locking the poolManager again.
-     */
-    function _resolveHookDelta(Currency currency) internal virtual {
-        int256 currencyDelta = poolManager.currencyDelta(address(this), currency);
-        if (currencyDelta > 0) {
-            currency.take(poolManager, address(this), currencyDelta.toUint256(), false);
-            _depositToYieldSource(currency, currencyDelta.toUint256());
-        }
-        if (currencyDelta < 0) {
-            _withdrawFromYieldSource(currency, (-currencyDelta).toUint256());
-            currency.settle(poolManager, address(this), (-currencyDelta).toUint256(), false);
-        }
     }
 
     /**

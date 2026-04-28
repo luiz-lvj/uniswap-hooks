@@ -848,4 +848,36 @@ contract BaseCustomAccountingTest is HookTest {
         vm.expectRevert(BaseCustomAccounting.AlreadyInitialized.selector);
         hook.beforeInitialize(address(this), key, SQRT_PRICE_1_1);
     }
+
+    /// @dev `BaseCustomAccounting` emits the principal delta from the caller's perspective:
+    /// negative when adding (caller pays the pool) and positive when removing (caller receives from the pool).
+    /// Exercises both add and remove for both currencies in a single test, asserting signs and non-zero magnitudes.
+    function test_hookModifyLiquidity_event_correctSigns() public {
+        // Add liquidity -> amounts must be negative (caller pays).
+        vm.recordLogs();
+        hook.addLiquidity(
+            BaseCustomAccounting.AddLiquidityParams(
+                10 ether, 10 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            )
+        );
+        (bytes memory addData, bool addFound) =
+            findLogData(vm.getRecordedLogs(), address(hook), HookModifyLiquidity.selector);
+        assertTrue(addFound, "HookModifyLiquidity not emitted on add");
+        (int128 addAmount0, int128 addAmount1) = abi.decode(addData, (int128, int128));
+        assertLt(addAmount0, int128(0), "add: amount0 should be negative (caller pays)");
+        assertLt(addAmount1, int128(0), "add: amount1 should be negative (caller pays)");
+
+        // Remove liquidity -> amounts must be positive (caller receives).
+        hook.approve(address(hook), type(uint256).max);
+        vm.recordLogs();
+        hook.removeLiquidity(
+            BaseCustomAccounting.RemoveLiquidityParams(1 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0))
+        );
+        (bytes memory remData, bool remFound) =
+            findLogData(vm.getRecordedLogs(), address(hook), HookModifyLiquidity.selector);
+        assertTrue(remFound, "HookModifyLiquidity not emitted on remove");
+        (int128 remAmount0, int128 remAmount1) = abi.decode(remData, (int128, int128));
+        assertGt(remAmount0, int128(0), "remove: amount0 should be positive (caller receives)");
+        assertGt(remAmount1, int128(0), "remove: amount1 should be positive (caller receives)");
+    }
 }

@@ -134,6 +134,42 @@ contract BaseHookFeeTest is HookTest {
         assertEq(hookCurrency1Claims, expectedFee);
     }
 
+    /// @dev `BaseHookFee` emits `HookFee` on the unspecified currency of the swap (the side the hook charges
+    /// the fee on). The fee currency depends on (zeroForOne, exactInput): the unspecified side is `currency1`
+    /// when `zeroForOne == exactInput`, and `currency0` otherwise. Exercises all 4 combinations in a single test.
+    function test_hookFee_event_emittedOnUnspecifiedCurrency() public {
+        int128 amount = 1e10;
+
+        for (uint256 i = 0; i < 4; i++) {
+            bool zeroForOne = i < 2;
+            bool exactInput = i % 2 == 0;
+            string memory tag =
+                string.concat("[zeroForOne=", zeroForOne ? "T" : "F", ", exactInput=", exactInput ? "T" : "F", "] ");
+
+            SwapParams memory params = SwapParams({
+                zeroForOne: zeroForOne,
+                amountSpecified: exactInput ? -int256(int128(amount)) : int256(int128(amount)),
+                sqrtPriceLimitX96: zeroForOne ? MIN_PRICE_LIMIT : MAX_PRICE_LIMIT
+            });
+
+            vm.recordLogs();
+            swapRouter.swap(key, params, testSettings, "");
+            (bytes memory data, bool found) = findLogData(vm.getRecordedLogs(), address(hook), HookFee.selector);
+            assertTrue(found, string.concat(tag, "HookFee not emitted"));
+            (uint128 fee0, uint128 fee1) = abi.decode(data, (uint128, uint128));
+
+            // Unspecified currency is currency1 when (exactInput == zeroForOne), else currency0.
+            bool feeOnCurrency1 = exactInput == zeroForOne;
+            if (feeOnCurrency1) {
+                assertEq(fee0, 0, string.concat(tag, "fee0 should be zero"));
+                assertGt(fee1, 0, string.concat(tag, "fee1 should be non-zero"));
+            } else {
+                assertGt(fee0, 0, string.concat(tag, "fee0 should be non-zero"));
+                assertEq(fee1, 0, string.concat(tag, "fee1 should be zero"));
+            }
+        }
+    }
+
     function test_withdrawFees() public {
         SwapParams memory swapParams1 = SwapParams({
             zeroForOne: true,

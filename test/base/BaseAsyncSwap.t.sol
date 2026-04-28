@@ -124,6 +124,51 @@ contract BaseAsyncSwapTest is HookTest {
         assertEq(balance0After - balance0Before, 100);
     }
 
+    /// @dev Per `IHookEvents.HookSwap` NatSpec: amount0/amount1 are positive for input, negative for output.
+    /// `BaseAsyncSwap` only acts on exact-input swaps (the input side is taken and the swap is netted to 0,
+    /// so the output side is reported as 0). Exact-output swaps are delegated to the `PoolManager`, so no
+    /// `HookSwap` is emitted. Exercises all 4 (zeroForOne x exactInput) combinations in a single test.
+    function test_hookSwap_event_correctSigns() public {
+        int128 amount = 100;
+
+        for (uint256 i = 0; i < 4; i++) {
+            bool zeroForOne = i < 2;
+            bool exactInput = i % 2 == 0;
+            string memory tag =
+                string.concat("[zeroForOne=", zeroForOne ? "T" : "F", ", exactInput=", exactInput ? "T" : "F", "] ");
+
+            SwapParams memory params = SwapParams({
+                zeroForOne: zeroForOne,
+                amountSpecified: exactInput ? -int256(int128(amount)) : int256(int128(amount)),
+                sqrtPriceLimitX96: zeroForOne ? SQRT_PRICE_1_2 : MAX_PRICE_LIMIT
+            });
+
+            vm.recordLogs();
+            swapRouter.swap(
+                key, params, PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}), ZERO_BYTES
+            );
+            (bytes memory data, bool found) = findLogData(vm.getRecordedLogs(), address(hook), HookSwap.selector);
+
+            if (!exactInput) {
+                assertFalse(found, string.concat(tag, "exact-output must not emit HookSwap"));
+                continue;
+            }
+
+            assertTrue(found, string.concat(tag, "HookSwap should be emitted"));
+            (int128 amount0, int128 amount1,,) = abi.decode(data, (int128, int128, uint128, uint128));
+
+            if (zeroForOne) {
+                // currency0 is input -> positive; currency1 is output -> 0 (async netting)
+                assertEq(amount0, amount, string.concat(tag, "amount0 (input) should equal +specifiedAmount"));
+                assertEq(amount1, int128(0), string.concat(tag, "amount1 (output) is netted to 0"));
+            } else {
+                // currency1 is input -> positive; currency0 is output -> 0 (async netting)
+                assertEq(amount0, int128(0), string.concat(tag, "amount0 (output) is netted to 0"));
+                assertEq(amount1, amount, string.concat(tag, "amount1 (input) should equal +specifiedAmount"));
+            }
+        }
+    }
+
     function test_swap_fuzz_succeeds(bool zeroForOne, int120 amountSpecified) public {
         vm.assume(amountSpecified != 0);
 

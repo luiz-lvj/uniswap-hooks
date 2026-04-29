@@ -348,11 +348,10 @@ abstract contract LimitOrderHook is BaseHook, IUnlockCallback {
 
         // snapshot the currency totals before zeroing so the callback can release the hook-held
         // ERC-6909 claims they represent to the final canceller.
-        BalanceDelta currencyTotalSnapshot;
+        BalanceDelta currencyTotalSnapshot =
+            toBalanceDelta(orderInfo.currency0Total.toInt128(), orderInfo.currency1Total.toInt128());
         if (removingAllLiquidity) {
             _setOrderId(key, tickLower, zeroForOne, ORDER_ID_DEFAULT);
-            currencyTotalSnapshot =
-                toBalanceDelta(orderInfo.currency0Total.toInt128(), orderInfo.currency1Total.toInt128());
             orderInfo.currency0Total = 0;
             orderInfo.currency1Total = 0;
         }

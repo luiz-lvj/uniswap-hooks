@@ -558,4 +558,78 @@ contract BaseCustomCurveTest is HookTest {
         assertEq(key.currency0.balanceOf(address(this)), prevBalance0 - 0.25 ether);
         assertEq(key.currency1.balanceOf(address(this)), prevBalance1 - 0.25 ether);
     }
+
+    /// @dev Per `IHookEvents.HookSwap` NatSpec: amount0/amount1 are positive for input, negative for output.
+    /// The mock is a constant-sum 1:1 curve, so the absolute values are equal on both sides. Exercises all 4
+    /// (zeroForOne x exactInput) combinations in a single test.
+    function test_hookSwap_event_correctSigns() public {
+        hook.addLiquidity(
+            BaseCustomAccounting.AddLiquidityParams(
+                10 ether, 10 ether, 9 ether, 9 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            )
+        );
+
+        int128 amount = 0.1 ether;
+
+        for (uint256 i = 0; i < 4; i++) {
+            bool zeroForOne = i < 2;
+            bool exactInput = i % 2 == 0;
+            string memory tag =
+                string.concat("[zeroForOne=", zeroForOne ? "T" : "F", ", exactInput=", exactInput ? "T" : "F", "] ");
+
+            SwapParams memory params = SwapParams({
+                zeroForOne: zeroForOne,
+                amountSpecified: exactInput ? -int256(int128(amount)) : int256(int128(amount)),
+                sqrtPriceLimitX96: zeroForOne ? SQRT_PRICE_1_2 : SQRT_PRICE_2_1
+            });
+
+            vm.recordLogs();
+            swapRouter.swap(
+                key, params, PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false}), ZERO_BYTES
+            );
+
+            (bytes memory data, bool found) = findLogData(vm.getRecordedLogs(), address(hook), HookSwap.selector);
+            assertTrue(found, string.concat(tag, "HookSwap not emitted"));
+            (int128 amount0, int128 amount1,,) = abi.decode(data, (int128, int128, uint128, uint128));
+
+            // Constant-sum 1:1 curve: |amount0| == |amount1| == amount.
+            // Input side is always currency`zeroForOne ? 0 : 1`.
+            (int128 expected0, int128 expected1) = zeroForOne ? (amount, -amount) : (-amount, amount);
+            assertEq(amount0, expected0, string.concat(tag, "amount0 sign/magnitude mismatch"));
+            assertEq(amount1, expected1, string.concat(tag, "amount1 sign/magnitude mismatch"));
+        }
+    }
+
+    /// @dev Per the `BaseCustomCurve._modifyLiquidity` flow, the emitted `HookModifyLiquidity` amounts
+    /// are caller-perspective deltas: negative when adding (caller pays the pool) and positive when removing
+    /// (caller receives from the pool). Exercises both add and remove for both currencies in a single test.
+    function test_hookModifyLiquidity_event_correctSigns() public {
+        // Add liquidity -> amounts must be negative (caller pays).
+        vm.recordLogs();
+        hook.addLiquidity(
+            BaseCustomAccounting.AddLiquidityParams(
+                10 ether, 10 ether, 9 ether, 9 ether, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0)
+            )
+        );
+        (bytes memory addData, bool addFound) =
+            findLogData(vm.getRecordedLogs(), address(hook), HookModifyLiquidity.selector);
+        assertTrue(addFound, "HookModifyLiquidity not emitted on add");
+        (int128 addAmount0, int128 addAmount1) = abi.decode(addData, (int128, int128));
+        assertEq(addAmount0, -int128(10 ether), "add: amount0 should equal -addedAmount0");
+        assertEq(addAmount1, -int128(10 ether), "add: amount1 should equal -addedAmount1");
+
+        // Remove liquidity -> amounts must be positive (caller receives).
+        hook.approve(address(hook), type(uint256).max);
+        vm.recordLogs();
+        hook.removeLiquidity(
+            BaseCustomAccounting.RemoveLiquidityParams(2 ether, 0, 0, MAX_DEADLINE, MIN_TICK, MAX_TICK, bytes32(0))
+        );
+        (bytes memory remData, bool remFound) =
+            findLogData(vm.getRecordedLogs(), address(hook), HookModifyLiquidity.selector);
+        assertTrue(remFound, "HookModifyLiquidity not emitted on remove");
+        (int128 remAmount0, int128 remAmount1) = abi.decode(remData, (int128, int128));
+        // Mock returns liquidity/2 for each currency, so removing 2 ether -> 1 ether per side.
+        assertEq(remAmount0, int128(1 ether), "remove: amount0 should equal +removedAmount0");
+        assertEq(remAmount1, int128(1 ether), "remove: amount1 should equal +removedAmount1");
+    }
 }

@@ -2,7 +2,7 @@
 // OpenZeppelin Uniswap Hooks (last updated v1.2.0) (test/utils/HookTest.sol)
 pragma solidity ^0.8.26;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, Vm} from "forge-std/Test.sol";
 import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 import {BalanceDelta, toBalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
@@ -93,6 +93,19 @@ contract HookTest is Test, Deployers, IPoolManagerEvents, IHookEvents {
     function swapAllCombinations(PoolKey memory poolKey, uint256 amount) internal {
         for (uint256 i = 0; i < 4; i++) {
             swap(poolKey, i < 2 ? false : true, i % 2 == 0 ? -int256(amount) : int256(amount), ZERO_BYTES);
+        }
+    }
+
+    // @dev Returns the data of the first log in `logs` emitted by `emitter` whose topic0 matches `selector`.
+    function findLogData(Vm.Log[] memory logs, address emitter, bytes32 selector)
+        internal
+        pure
+        returns (bytes memory data, bool found)
+    {
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].emitter == emitter && logs[i].topics.length > 0 && logs[i].topics[0] == selector) {
+                return (logs[i].data, true);
+            }
         }
     }
 
